@@ -64,6 +64,14 @@ namespace PokemonTrackerEditor.Model {
             return false;
         }
 
+        public void RemoveLocation(Location location) {
+            TreeIter iter = location.Iter;
+            location.Cleanup();
+            treeStore.Remove(ref iter);
+            locations.Remove(location);
+            HasChanged = true;
+        }
+
         public bool AddCheck(Location location, string check, Check.CheckType type) {
             Console.WriteLine($"RuleSet.AddCheck({check})");
             Check chk = new Check(check, this, type);
@@ -90,6 +98,13 @@ namespace PokemonTrackerEditor.Model {
                 chk.Cleanup();
                 return false;
             }
+        }
+
+        public void RemoveCheck(Location location, Check check) {
+            TreeIter iter = check.Iter;
+            treeStore.Remove(ref iter);
+            location.RemoveCheck(check);
+            HasChanged = true;
         }
 
         public bool AddLanguage(string code, string name) {

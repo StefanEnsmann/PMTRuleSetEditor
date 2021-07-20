@@ -46,6 +46,21 @@ namespace PokemonTrackerEditor.Model {
     class LocationCategory : TreeModelBaseClass {
         public Location Parent { get; private set; }
         public Check.CheckType Type { get; private set; }
+        public int CheckCount {
+            get {
+                switch(Type) {
+                    case Check.CheckType.ITEM:
+                        return Parent.ItemCount;
+                    case Check.CheckType.POKEMON:
+                        return Parent.PokemonCount;
+                    case Check.CheckType.TRADE:
+                        return Parent.TradeCount;
+                    case Check.CheckType.TRAINER:
+                        return Parent.TrainerCount;
+                }
+                return 0;
+            }
+        }
         public LocationCategory(string id, Location parent, Check.CheckType type, RuleSet ruleSet) : base(id, ruleSet) {
             Parent = parent;
             Type = type;
@@ -249,9 +264,11 @@ namespace PokemonTrackerEditor.Model {
 
         public override void Cleanup() {
             base.Cleanup();
-            foreach (DependencyEntry dependingEntry in dependingEntries.Keys) {
+            Dictionary<DependencyEntry, TreeIter> copy = new Dictionary<DependencyEntry, TreeIter>(dependingEntries);
+            foreach (DependencyEntry dependingEntry in copy.Keys) {
                 dependingEntry.RemoveCondition(this);
             }
+            copy.Clear();
             dependingEntries.Clear();
         }
 

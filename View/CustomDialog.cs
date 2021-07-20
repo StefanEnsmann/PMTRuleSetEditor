@@ -71,11 +71,6 @@ namespace PokemonTrackerEditor.View {
             }
         }
 
-        private static void RenderCheckCell(CellLayout cellLayout, CellRenderer cell, TreeModel model, TreeIter iter) {
-            TreeModelBaseClass dep = (TreeModelBaseClass)model.GetValue(iter, 0);
-            (cell as CellRendererText).Text = dep.Id;
-        }
-
         public static Check SelectCheck(Window parent, string title, TreeModel model, Check.CheckType type) {
             Dialog dlg = new Dialog(title, parent, DialogFlags.DestroyWithParent);
             dlg.VBox.PackStart(new Label("Select check:"));
@@ -85,7 +80,7 @@ namespace PokemonTrackerEditor.View {
             ComboBox cb = new ComboBox(filter);
             CellRendererText cbCellRenderer = new CellRendererText();
             cb.PackStart(cbCellRenderer, true);
-            cb.SetCellDataFunc(cbCellRenderer, new CellLayoutDataFunc(RenderCheckCell));
+            cb.SetCellDataFunc(cbCellRenderer, new CellLayoutDataFunc(View.MainWindow.Renderers.CheckCell));
             dlg.VBox.PackStart(cb);
             dlg.AddButton(Stock.Ok, 0);
             dlg.AddButton(Stock.Cancel, 1);

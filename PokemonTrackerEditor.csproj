@@ -83,7 +83,11 @@
     <Compile Include="Model\StoryItems.cs" />
     <Compile Include="Model\StoryItemsConditions.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="View\MainWindow\MainWindow.cs" />
+    <Compile Include="View\MainWindow\ButtonCallbacks.cs" />
     <Compile Include="View\CustomDialog.cs" />
+    <Compile Include="View\MainWindow\EventCallbacks.cs" />
+    <Compile Include="View\MainWindow\Renderers.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
