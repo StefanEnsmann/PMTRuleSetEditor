@@ -7,13 +7,13 @@ using System.Threading.Tasks;
 using Gtk;
 
 namespace PokemonTrackerEditor.Model {
-    abstract class TreeModelBaseClass : IEquatable<TreeModelBaseClass> {
+    abstract class DependencyEntryBase : IEquatable<DependencyEntryBase> {
         private string id;
         public string Id { get => id; set { id = value; RuleSet.ReportChange(); } }
         public TreeIter Iter { get; set; }
         public RuleSet RuleSet { get; private set; }
 
-        public TreeModelBaseClass(string id, RuleSet ruleSet) {
+        public DependencyEntryBase(string id, RuleSet ruleSet) {
             RuleSet = ruleSet;
             this.id = id;
         }
@@ -23,27 +23,27 @@ namespace PokemonTrackerEditor.Model {
         }
 
         public override bool Equals(object obj) {
-            return obj != null && obj is TreeModelBaseClass other && Equals(other);
+            return obj != null && obj is DependencyEntryBase other && Equals(other);
         }
 
         public override int GetHashCode() {
             return Id.GetHashCode();
         }
 
-        public bool Equals(TreeModelBaseClass other) {
+        public bool Equals(DependencyEntryBase other) {
             return Id.Equals(other.Id);
         }
 
-        public static int Compare(TreeModelBaseClass a, TreeModelBaseClass b) {
+        public static int Compare(DependencyEntryBase a, DependencyEntryBase b) {
             return a != null && b != null ? string.Compare(a.Id, b.Id) : a != null ? -1 : b != null ? 1 : 0;
         }
 
         public static int Compare(TreeModel model, TreeIter a, TreeIter b) {
-            return Compare((TreeModelBaseClass)model.GetValue(a, 0), (TreeModelBaseClass)model.GetValue(b, 0));
+            return Compare((DependencyEntryBase)model.GetValue(a, 0), (DependencyEntryBase)model.GetValue(b, 0));
         }
     }
 
-    class LocationCategory : TreeModelBaseClass {
+    class LocationCategory : DependencyEntryBase {
         public Location Parent { get; private set; }
         public Check.CheckType Type { get; private set; }
         public int CheckCount {
@@ -67,7 +67,7 @@ namespace PokemonTrackerEditor.Model {
         }
     }
 
-    abstract class DependencyEntry : TreeModelBaseClass {
+    abstract class DependencyEntry : DependencyEntryBase {
         private List<Check> itemsConditions;
         private List<Check> pokemonConditions;
         private List<Check> tradesConditions;
@@ -88,14 +88,14 @@ namespace PokemonTrackerEditor.Model {
         public int PokemonCondCount => pokemonConditions.Count;
         public int TradeCondCount => tradesConditions.Count;
         public int TrainerCondCount => trainersConditions.Count;
-        public int StoryItemsCondCount => StoryItemsConditions.CountActive;
+        public int StoryItemsCondCount => StoryItemsConditions.Count;
 
         public DependencyEntry(string id, RuleSet ruleSet) : base(id, ruleSet) {
             itemsConditions = new List<Check>();
             pokemonConditions = new List<Check>();
             tradesConditions = new List<Check>();
             trainersConditions = new List<Check>();
-            StoryItemsConditions = new StoryItemsConditions(ruleSet.StoryItems);
+            StoryItemsConditions = new StoryItemsConditions(this);
             localization = new Dictionary<string, string>();
             itemsTreeStore = new TreeStore(typeof(Check));
             ItemsModel = new TreeModelSort(itemsTreeStore);
@@ -229,7 +229,6 @@ namespace PokemonTrackerEditor.Model {
         }
 
         public bool AddCheck(Check check) {
-            Console.WriteLine($"Location.AddCheck({check.Id})");
             List<Check> list = GetListForCheck(check);
             if (!list.Contains(check)) {
                 check.location = this;
@@ -274,6 +273,7 @@ namespace PokemonTrackerEditor.Model {
 
         public void AddDependingEntry(DependencyEntry entry, TreeIter iter) {
             dependingEntries.Add(entry, iter);
+            RuleSet.ReportChange();
         }
 
         public TreeIter GetDependencyIter(DependencyEntry entry) {
@@ -282,6 +282,7 @@ namespace PokemonTrackerEditor.Model {
 
         public void RemoveDependingEntry(DependencyEntry entry) {
             while (dependingEntries.Remove(entry)) ;
+            RuleSet.ReportChange();
         }
     }
 }

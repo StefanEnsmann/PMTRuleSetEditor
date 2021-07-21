@@ -8,7 +8,8 @@ using System.Collections.Generic;
 namespace PokemonTrackerEditor.View.MainWindow {
     class MainWindow : Window {
         public MainProg Main { get; private set; }
-        public DependencyEntry CurrentSelection { get; set; }
+        public DependencyEntry CurrentLocationSelection { get; set; }
+        public StoryItemBase CurrentStoryItemSelection { get; set; }
 
         private string windowTitle = "Pokémon Map Tracker Rule Set Editor";
         private TreeView locationTreeView;
@@ -20,7 +21,10 @@ namespace PokemonTrackerEditor.View.MainWindow {
             SetRuleSetPath(filename);
             locationTreeView.Model = ruleSet.Model;
             locationTreeView.Selection.SelectIter(TreeIter.Zero);
-            CurrentSelection = null;
+            storyItemsTreeView.Model = ruleSet.StoryItems.Model;
+            storyItemsTreeView.Selection.SelectIter(TreeIter.Zero);
+            CurrentLocationSelection = null;
+            CurrentStoryItemSelection = null;
         }
 
         public void SetRuleSetPath(string filename) {
@@ -28,13 +32,13 @@ namespace PokemonTrackerEditor.View.MainWindow {
         }
 
         public void UpdateEditorSelection(DependencyEntry entry) {
-            CurrentSelection = entry;
+            CurrentLocationSelection = entry;
             if (entry != null) {
                 locationConditionsTreeViews["Items"].Model = entry.ItemsModel;
                 locationConditionsTreeViews["Pokémon"].Model = entry.PokemonModel;
                 locationConditionsTreeViews["Trades"].Model = entry.TradesModel;
                 locationConditionsTreeViews["Trainers"].Model = entry.TrainersModel;
-                //locationConditionsTreeViews["Story Items"].Model = entry.StoryItemsConditions.Model;
+                locationConditionsTreeViews["Story Items"].Model = entry.StoryItemsConditions.Model;
             }
             else {
                 foreach (TreeView treeView in locationConditionsTreeViews.Values) {
@@ -127,8 +131,7 @@ namespace PokemonTrackerEditor.View.MainWindow {
             ScrolledWindow locationTreeViewScrolledWindow = new ScrolledWindow();
             locationTreeView = new TreeView(main.RuleSet.Model);
 
-            TreeSelection locationTreeSelection = locationTreeView.Selection;
-            locationTreeSelection.Changed += (object sender, EventArgs args) => { EventCallbacks.OnLocationTreeSelectionChanged(this, (TreeSelection)sender); };
+            locationTreeView.Selection.Changed += (object sender, EventArgs args) => { EventCallbacks.OnLocationTreeSelectionChanged(this, (TreeSelection)sender); };
 
             TreeViewColumn locationNameColumn = new TreeViewColumn { Title = "Location", Resizable = true };
 
@@ -173,35 +176,76 @@ namespace PokemonTrackerEditor.View.MainWindow {
             conditionsBox.PackStart(CreateCheckConditionList("Trades", Check.CheckType.TRADE));
             conditionsBox.PackStart(CreateCheckConditionList("Trainers", Check.CheckType.TRAINER));
 
+            Frame storyItemConditionFrame = new Frame("Story Items");
+            VBox condStoryItemBox = new VBox { Spacing = 5 };
+
+            TreeView condStoryItemTreeView = new TreeView();
+            locationConditionsTreeViews["Story Items"] = condStoryItemTreeView;
+
+            TreeViewColumn condStoryItemColumn = new TreeViewColumn { Title = "Item", Resizable = true };
+            CellRendererText condStoryItemColumnText = new CellRendererText();
+            condStoryItemColumn.PackStart(condStoryItemColumnText, true);
+            condStoryItemColumn.SetCellDataFunc(condStoryItemColumnText, new TreeCellDataFunc(Renderers.StoryItemConditionName));
+            condStoryItemTreeView.AppendColumn(condStoryItemColumn);
+
+            TreeViewColumn condStoryItemCountColumn = new TreeViewColumn { Title = "Count", Resizable = true };
+            CellRendererText condStoryItemCountColumnText = new CellRendererText();
+            condStoryItemCountColumn.PackStart(condStoryItemCountColumnText, true);
+            condStoryItemCountColumn.SetCellDataFunc(condStoryItemCountColumnText, new TreeCellDataFunc(Renderers.StoryItemConditionCollectionCount));
+            condStoryItemTreeView.AppendColumn(condStoryItemCountColumn);
+
+            ScrolledWindow condStoryItemTreeViewScrolledWindow = new ScrolledWindow { condStoryItemTreeView };
+            condStoryItemBox.PackStart(condStoryItemTreeViewScrolledWindow, true, true, 0);
+
+            Toolbar condStoryItemBoxControls = new Toolbar();
+            ToolButton addStoryItemCondition = new ToolButton(Stock.Add) { Label = "Item" };
+            addStoryItemCondition.Clicked += (object sender, EventArgs args) => { ButtonCallbacks.OnAddStoryItemConditionClick(this, condStoryItemTreeView); };
+            condStoryItemBoxControls.Insert(addStoryItemCondition, 0);
+            ToolButton addStoryItemANDCollection = new ToolButton(Stock.Add) { Label = "AND" };
+            condStoryItemBoxControls.Insert(addStoryItemANDCollection, 1);
+            ToolButton addStoryItemORCollection = new ToolButton(Stock.Add) { Label = "OR" };
+            condStoryItemBoxControls.Insert(addStoryItemORCollection, 2);
+            ToolButton removeStoryItemCondition = new ToolButton(Stock.Remove);
+            //removeCondition.Clicked += (object sender, EventArgs args) => { ButtonCallbacks.OnRemoveConditionClick(this, condTreeView); };
+            condStoryItemBoxControls.Insert(removeStoryItemCondition, 3);
+
+            condStoryItemBox.PackStart(condStoryItemBoxControls, false, false, 0);
+
+            storyItemConditionFrame.Add(condStoryItemBox);
+
+            conditionsBox.PackStart(storyItemConditionFrame);
+
             editorPaned.Add2(conditionsBox);
             editorPaned.Position = 400;
 
             mainNotebook.InsertPage(editorPaned, new Label { Text = "Locations" }, 0);
 
-            /* Story items
-            TreeView condTreeView = new TreeView();
-            locationConditionsTreeViews[type] = condTreeView;
-            TreeViewColumn condStoryItemColumn = new TreeViewColumn { Title = "Story Item", Resizable = true };
-            CellRendererText condStoryItemColumnText = new CellRendererText();
-            condStoryItemColumn.PackStart(condStoryItemColumnText, true);
-            condStoryItemColumn.SetCellDataFunc(condStoryItemColumnText, new TreeCellDataFunc(Renderers.StoryItemConditionName));
-            condTreeView.AppendColumn(condStoryItemColumn);
-
-            TreeViewColumn condStoryItemCheckedColumn = new TreeViewColumn { Title = "Necessary" };
-            CellRendererToggle condStoryItemCheckedColumnValue = new CellRendererToggle();
-            condStoryItemCheckedColumn.PackStart(condStoryItemCheckedColumnValue, true);
-            condStoryItemCheckedColumn.SetCellDataFunc(condStoryItemCheckedColumnValue, new TreeCellDataFunc(Renderers.StoryItemActive));
-            condTreeView.AppendColumn(condStoryItemCheckedColumn);
-            */
-
+            // Story Items
             VBox storyItemsBox = new VBox { Spacing = 5 };
             storyItemsTreeView = new TreeView(main.RuleSet.StoryItems.Model);
+            storyItemsTreeView.Selection.Changed += (object sender, EventArgs args) => { EventCallbacks.OnStoryItemTreeSelectionChanged(this, (TreeSelection)sender); };
+
+            TreeViewColumn storyItemsNameColumn = new TreeViewColumn { Title = "Story Item", Resizable = true };
+            CellRendererText storyItemsNameColumnText = new CellRendererText { Editable = true };
+            storyItemsNameColumnText.Edited += (object sender, EditedArgs args) => { EventCallbacks.OnStoryItemNameEdited(this, new TreePath(args.Path), args.NewText); };
+            storyItemsNameColumn.PackStart(storyItemsNameColumnText, true);
+            storyItemsNameColumn.SetCellDataFunc(storyItemsNameColumnText, new TreeCellDataFunc(Renderers.StoryItemName));
+            storyItemsTreeView.AppendColumn(storyItemsNameColumn);
+
+            TreeViewColumn storyItemsDependenciesColumn = new TreeViewColumn { Title = "Dependencies", Resizable = true };
+            CellRendererText storyItemsDependenciesColumnText = new CellRendererText();
+            storyItemsDependenciesColumn.PackStart(storyItemsDependenciesColumnText, true);
+            storyItemsDependenciesColumn.SetCellDataFunc(storyItemsDependenciesColumnText, new TreeCellDataFunc(Renderers.StoryItemDependencyCount));
+            storyItemsTreeView.AppendColumn(storyItemsDependenciesColumn);
+
             storyItemsBox.PackStart(storyItemsTreeView, true, true, 0);
 
             Toolbar storyItemsToolbar = new Toolbar();
             ToolButton addCategoryButton = new ToolButton(Stock.Add) { Label = "Category" };
+            addCategoryButton.Clicked += (object sender, EventArgs args) => { ButtonCallbacks.OnAddStoryItemCategoryClick(this); };
             storyItemsToolbar.Insert(addCategoryButton, 0);
             ToolButton addStoryItemButton = new ToolButton(Stock.Add) { Label = "Story Item" };
+            addStoryItemButton.Clicked += (object sender, EventArgs args) => { ButtonCallbacks.OnAddStoryItemClick(this); };
             storyItemsToolbar.Insert(addStoryItemButton, 1);
             ToolButton removeSelectedStoryItemButton = new ToolButton(Stock.Remove) { Label = "Remove" };
             storyItemsToolbar.Insert(removeSelectedStoryItemButton, 2);

@@ -14,7 +14,7 @@ namespace PokemonTrackerEditor.View.MainWindow {
             DependencyEntry currentSelection = null;
             if (selection.GetSelected(out TreeIter iter)) {
                 object obj = window.Main.RuleSet.Model.GetValue(iter, 0);
-                TreeModelBaseClass entry = (TreeModelBaseClass)obj;
+                DependencyEntryBase entry = (DependencyEntryBase)obj;
                 if (entry != null) {
                     if (entry is LocationCategory locCat) {
                         currentSelection = locCat.Parent;
@@ -26,13 +26,31 @@ namespace PokemonTrackerEditor.View.MainWindow {
             }
             window.UpdateEditorSelection(currentSelection);
         }
+        public static void OnStoryItemTreeSelectionChanged(MainWindow window, TreeSelection selection) {
+            if (selection.GetSelected(out TreeIter iter)) {
+                object obj = window.Main.RuleSet.StoryItems.Model.GetValue(iter, 0);
+                StoryItemBase entry = (StoryItemBase)obj;
+                if (entry != null) {
+                    window.CurrentStoryItemSelection = entry;
+                }
+            }
+        }
 
         public static void OnLocationNameEdited(MainWindow window, TreePath path, string newText) {
             window.Main.RuleSet.Model.GetIter(out TreeIter iter, path);
-            TreeModelBaseClass data = (TreeModelBaseClass)window.Main.RuleSet.Model.GetValue(iter, 0);
+            DependencyEntryBase data = (DependencyEntryBase)window.Main.RuleSet.Model.GetValue(iter, 0);
             if ((data is Location && window.Main.RuleSet.LocationNameAvailable(newText)) || (data is Check check && check.location.CheckNameAvailable(newText, check.Type))) {
                 data.Id = newText;
                 window.Main.RuleSet.Model.Model.EmitRowChanged(path, iter);
+            }
+        }
+
+        public static void OnStoryItemNameEdited(MainWindow window, TreePath path, string newText) {
+            window.Main.RuleSet.StoryItems.Model.GetIter(out TreeIter iter, path);
+            StoryItemBase data = (StoryItemBase)window.Main.RuleSet.StoryItems.Model.GetValue(iter, 0);
+            if ((data is StoryItemCategory && window.Main.RuleSet.StoryItems.CategoryNameAvailable(newText)) || (data is StoryItem storyItem && storyItem.Category.StoryItemNameAvailable(newText))) {
+                data.Id = newText;
+                window.Main.RuleSet.StoryItems.Model.EmitRowChanged(path, iter);
             }
         }
     }

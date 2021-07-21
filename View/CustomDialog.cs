@@ -51,7 +51,7 @@ namespace PokemonTrackerEditor.View {
         }
 
         private static bool FilterCheckList(TreeModel model, TreeIter iter, Check.CheckType type) {
-            TreeModelBaseClass current = (TreeModelBaseClass)model.GetValue(iter, 0);
+            DependencyEntryBase current = (DependencyEntryBase)model.GetValue(iter, 0);
             if (current != null) {
                 if (current is LocationCategory locCat) {
                     return locCat.Type == type;
@@ -80,16 +80,38 @@ namespace PokemonTrackerEditor.View {
             ComboBox cb = new ComboBox(filter);
             CellRendererText cbCellRenderer = new CellRendererText();
             cb.PackStart(cbCellRenderer, true);
-            cb.SetCellDataFunc(cbCellRenderer, new CellLayoutDataFunc(View.MainWindow.Renderers.CheckCell));
+            cb.SetCellDataFunc(cbCellRenderer, new CellLayoutDataFunc(MainWindow.Renderers.CheckComboBoxCell));
             dlg.VBox.PackStart(cb);
             dlg.AddButton(Stock.Ok, 0);
             dlg.AddButton(Stock.Cancel, 1);
             dlg.VBox.ShowAll();
             int response = dlg.Run();
+            cb.GetActiveIter(out TreeIter iter);
             dlg.Destroy();
             if (response == 0) {
-                cb.GetActiveIter(out TreeIter iter);
                 return filter.GetValue(iter, 0) is Check check ? check : null;
+            }
+            else {
+                return null;
+            }
+        }
+
+        public static StoryItem SelectStoryItem(Window parent, string title, TreeModel model) {
+            Dialog dlg = new Dialog(title, parent, DialogFlags.DestroyWithParent);
+            dlg.VBox.PackStart(new Label("Select story item:"));
+            ComboBox cb = new ComboBox(model);
+            CellRendererText cbCellRenderer = new CellRendererText();
+            cb.PackStart(cbCellRenderer, true);
+            cb.SetCellDataFunc(cbCellRenderer, new CellLayoutDataFunc(MainWindow.Renderers.StoryItemComboBoxCell));
+            dlg.VBox.PackStart(cb);
+            dlg.AddButton(Stock.Ok, 0);
+            dlg.AddButton(Stock.Cancel, 1);
+            dlg.VBox.ShowAll();
+            int response = dlg.Run();
+            cb.GetActiveIter(out TreeIter iter);
+            dlg.Destroy();
+            if (response == 0) {
+                return model.GetValue(iter, 0) is StoryItem item ? item : null;
             }
             else {
                 return null;

@@ -80,8 +80,8 @@ namespace PokemonTrackerEditor.View.MainWindow {
 
         public static void OnAddCheckClick(MainWindow window, Check.CheckType type) {
             RuleSet ruleSet = window.Main.RuleSet;
-            DependencyEntry currentSelection = window.CurrentSelection;
-            if (window.CurrentSelection != null) {
+            DependencyEntry currentSelection = window.CurrentLocationSelection;
+            if (window.CurrentLocationSelection != null) {
                 Location loc = currentSelection is Location location ? location : ((Check)currentSelection).location;
                 string template = "new_" + type.ToString().ToLower() + "_";
                 int value = 0;
@@ -93,29 +93,69 @@ namespace PokemonTrackerEditor.View.MainWindow {
 
         public static void OnRemoveLocationOrCheckClick(MainWindow window) {
             RuleSet ruleSet = window.Main.RuleSet;
-            if (window.CurrentSelection != null) {
-                if (window.CurrentSelection is Location loc) {
+            if (window.CurrentLocationSelection != null) {
+                if (window.CurrentLocationSelection is Location loc) {
                     ruleSet.RemoveLocation(loc);
                 }
-                else if (window.CurrentSelection is Check check) {
+                else if (window.CurrentLocationSelection is Check check) {
                     ruleSet.RemoveCheck(check.location, check);
                 }
             }
         }
 
         public static void OnAddConditionClick(MainWindow window, Check.CheckType type) {
-            if (window.CurrentSelection != null) {
+            if (window.CurrentLocationSelection != null) {
                 Check selectedCheck = CustomDialog.SelectCheck(window, "Select check", window.Main.RuleSet.Model, type);
                 if (selectedCheck != null) {
-                    window.CurrentSelection.AddCondition(selectedCheck);
+                    window.CurrentLocationSelection.AddCondition(selectedCheck);
                 }
             }
         }
 
         public static void OnRemoveConditionClick(MainWindow window, TreeView treeView) {
             treeView.Selection.GetSelected(out TreeModel model, out TreeIter iter);
-            if (window.CurrentSelection != null && model.GetValue(iter, 0) is Check check) {
-                window.CurrentSelection.RemoveCondition(check);
+            if (window.CurrentLocationSelection != null && model.GetValue(iter, 0) is Check check) {
+                window.CurrentLocationSelection.RemoveCondition(check);
+            }
+        }
+
+        public static void OnAddStoryItemConditionClick(MainWindow window, TreeView treeView) {
+            if (window.CurrentLocationSelection != null) {
+                StoryItem storyItem = CustomDialog.SelectStoryItem(window, "Select story item", window.Main.RuleSet.StoryItems.Model);
+                if (storyItem != null) {
+                    if (treeView.Selection.GetSelected(out TreeModel model, out TreeIter iter) && model.GetValue(iter, 0) is StoryItemConditionBase selection) {
+                        if (selection is StoryItemCondition selectedItem) {
+                            selectedItem.Container.AddStoryItemCondition(storyItem);
+                        }
+                        else if (selection is StoryItemConditionCollection collection) {
+                            collection.AddStoryItemCondition(storyItem);
+                        }
+                    }
+                    else {
+                        window.CurrentLocationSelection.StoryItemsConditions.AddStoryItemCondition(storyItem);
+                    }
+                }
+            }
+        }
+
+        public static void OnAddStoryItemCategoryClick(MainWindow window) {
+            StoryItems storyItems = window.Main.RuleSet.StoryItems;
+            string template = "new_story_item_category_";
+            int value = 0;
+            while (!storyItems.AddStoryItemCategory(template + value)) {
+                ++value;
+            }
+        }
+
+        public static void OnAddStoryItemClick(MainWindow window) {
+            StoryItemBase currentSelection = window.CurrentStoryItemSelection;
+            if (window.CurrentStoryItemSelection != null) {
+                StoryItemCategory cat = currentSelection is StoryItemCategory category ? category : ((StoryItem)currentSelection).Category;
+                string template = "new_story_item_";
+                int value = 0;
+                while (!cat.AddStoryItem(template + value)) {
+                    ++value;
+                }
             }
         }
     }

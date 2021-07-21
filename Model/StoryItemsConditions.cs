@@ -8,11 +8,18 @@ using Gtk;
 
 namespace PokemonTrackerEditor.Model {
     abstract class StoryItemConditionBase : IEquatable<StoryItemConditionBase> {
-        abstract public string Id { get; }
-        abstract public bool Active { get; set; }
+        virtual public string Id { get; protected set; }
         public TreeIter Iter { get; set; }
 
-        abstract public void Cleanup();
+        public StoryItemConditionCollection Container { get; private set; }
+
+        public StoryItemConditionBase(StoryItemConditionCollection container) {
+            Container = container;
+        }
+
+        public virtual void Cleanup() {
+            Container = null;
+        }
 
         public override bool Equals(object obj) {
             return obj != null && obj is StoryItemConditionBase other && Equals(other);
@@ -36,154 +43,157 @@ namespace PokemonTrackerEditor.Model {
     }
 
     class StoryItemCondition : StoryItemConditionBase {
-        override public string Id => StoryItem.Id;
-
-        private bool active;
-        override public bool Active { get => active; set { active = value; Category.Parent.StoryItems.RuleSet.ReportChange(); } }
+        override public string Id => StoryItem.Category.Id + "/" + StoryItem.Id;
 
         public StoryItem StoryItem { get; private set; }
-        public StoryItemCategoryCondition Category { get; private set; }
 
-        public StoryItemCondition(StoryItem storyItem, StoryItemCategoryCondition category) {
-            active = false;
+        public StoryItemCondition(StoryItem storyItem, StoryItemConditionCollection container) : base(container) {
             StoryItem = storyItem;
-            Category = category;
+            StoryItem.AddDependency(this);
         }
 
         public override void Cleanup() {
+            base.Cleanup();
+            StoryItem.RemoveDependency(this);
             StoryItem = null;
-            Category = null;
         }
     }
 
-    class StoryItemCategoryCondition : StoryItemConditionBase {
-        override public string Id => StoryItemCategory.Id;
-
-        override public bool Active {
-            get {
-                foreach (StoryItemCondition cond in storyItemConditions)
-                    if (!cond.Active)
-                        return false;
-                return true;
-            }
-            set {
-                foreach (StoryItemCondition cond in storyItemConditions)
-                    cond.Active = value;
-                Parent.StoryItems.RuleSet.ReportChange();
-            }
-        }
-
-        public int CountActive {
+    abstract class StoryItemConditionCollection : StoryItemConditionBase {
+        protected List<StoryItemConditionBase> conditions;
+        public int Count {
             get {
                 int ret = 0;
-                foreach (StoryItemCondition cond in storyItemConditions) {
-                    if (cond.Active)
+                foreach (StoryItemConditionBase cond in conditions) {
+                    if (cond is StoryItemConditionCollection cont) {
+                        ret += cont.Count;
+                    }
+                    else {
                         ++ret;
+                    }
                 }
                 return ret;
             }
         }
 
-        public StoryItemsConditions Parent { get; private set; }
-        public StoryItemCategory StoryItemCategory { get; private set; }
-        private List<StoryItemCondition> storyItemConditions;
-
-        public StoryItemCategoryCondition(StoryItemCategory storyItemCategory, StoryItemsConditions parent) {
-            Parent = parent;
-            StoryItemCategory = storyItemCategory;
-            storyItemConditions = new List<StoryItemCondition>();
+        public StoryItemConditionCollection(string id, StoryItemConditionCollection container) : base(container) {
+            Id = id;
+            conditions = new List<StoryItemConditionBase>();
         }
 
-        public void AddStoryItem(StoryItem storyItem) {
+        public void AddStoryItemCondition(StoryItem storyItem) {
             StoryItemCondition cond = new StoryItemCondition(storyItem, this);
-            Parent.TreeStore.AppendValues(Iter, cond);
-            storyItemConditions.Add(cond);
-        }
-
-        public void RemoveStoryItem(StoryItem storyItem) {
-            StoryItemCondition fittingCond = null;
-            foreach (StoryItemCondition cond in storyItemConditions) {
-                if (cond.StoryItem == storyItem) {
-                    fittingCond = cond;
-                    break;
-                }
-            }
-            if (fittingCond != null) {
-                TreeIter iter = fittingCond.Iter;
-                Parent.TreeStore.Remove(ref iter);
-                fittingCond.Cleanup();
-                storyItemConditions.Remove(fittingCond);
+            if (!conditions.Contains(cond)) {
+                conditions.Add(cond);
+                InsertConditionToTree(cond, Iter);
             }
             else {
-                Console.WriteLine($"NO CONDITIONS FOUND FOR STORY ITEM WITH ID {storyItem.Id}");
+                cond.Cleanup();
             }
+        }
+
+        public void AddANDCollection() {
+            string template = "AND ";
+            int value = 0;
+            StoryItemANDCondition cond = new StoryItemANDCondition(template + value, this);
+            while (conditions.Contains(cond)) {
+                ++value;
+                cond = new StoryItemANDCondition(template + value, this);
+            }
+            conditions.Add(cond);
+            InsertConditionToTree(cond, Iter);
+        }
+
+        public void AddORCollection() {
+            string template = "AND ";
+            int value = 0;
+            StoryItemORCondition cond = new StoryItemORCondition(template + value, this);
+            while (conditions.Contains(cond)) {
+                ++value;
+                cond = new StoryItemORCondition(template + value, this);
+            }
+            conditions.Add(cond);
+            InsertConditionToTree(cond, Iter);
+        }
+
+        virtual protected void ReportChange() {
+            Container.ReportChange();
+        }
+
+        public void RemoveStoryItemCondition(StoryItemConditionBase cond) {
+            conditions.Remove(cond);
+            RemoveConditionFromTree(cond);
+            cond.Cleanup();
+        }
+
+        virtual protected void InsertConditionToTree(StoryItemConditionBase cond, TreeIter iter) {
+            Container.InsertConditionToTree(cond, iter);
+        }
+
+        virtual protected void RemoveConditionFromTree(StoryItemConditionBase cond) {
+            Container.RemoveConditionFromTree(cond);
         }
 
         public override void Cleanup() {
-            foreach (StoryItemCondition cond in storyItemConditions) {
+            base.Cleanup();
+            foreach (StoryItemConditionBase cond in conditions) {
                 cond.Cleanup();
             }
-            storyItemConditions.Clear();
-            storyItemConditions = null;
-            StoryItemCategory = null;
+            conditions.Clear();
+            conditions = null;
         }
     }
 
-    class StoryItemsConditions {
-        private List<StoryItemCategoryCondition> categories;
-        public StoryItems StoryItems { get; private set; }
-        public TreeStore TreeStore { get; set; }
-        public TreeModelSort Model { get; private set; }
-        public int CountActive {
-            get {
-                int ret = 0;
-                foreach (StoryItemCategoryCondition cond in categories) {
-                    ret += cond.CountActive;
-                }
-                return ret;
-            }
-        }
+    class StoryItemANDCondition : StoryItemConditionCollection {
 
-        public StoryItemsConditions(StoryItems storyItems) {
-            categories = new List<StoryItemCategoryCondition>();
-            StoryItems = storyItems;
-            StoryItems.RegisterConditions(this);
+        public StoryItemANDCondition(string id, StoryItemConditionCollection container) : base(id, container) {
+
+        }
+    }
+
+    class StoryItemORCondition : StoryItemConditionCollection {
+
+        public StoryItemORCondition(string id, StoryItemConditionCollection container) : base(id, container) {
+
+        }
+    }
+
+    class StoryItemsConditions : StoryItemConditionCollection {
+        public DependencyEntry Entry { get; private set; }
+        public TreeStore TreeStore { get; private set; }
+        public TreeModelSort Model { get; private set; }
+
+        public StoryItemsConditions(DependencyEntry entry) : base("base", null) {
+            Entry = entry;
+            conditions = new List<StoryItemConditionBase>();
             TreeStore = new TreeStore(typeof(StoryItemConditionBase));
             Model = new TreeModelSort(TreeStore);
+            Model.SetSortFunc(0, Compare);
+            Model.SetSortColumnId(0, SortType.Ascending);
+            Iter = TreeIter.Zero;
         }
 
-        public void AddStoryItemCategory(StoryItemCategory category) {
-            StoryItemCategoryCondition cond = new StoryItemCategoryCondition(category, this);
-            cond.Iter = TreeStore.AppendValues(cond);
-            categories.Add(cond);
+        protected override void ReportChange() {
+            Entry.RuleSet.ReportChange();
         }
 
-        public void RemoveStoryItemCategory(StoryItemCategory category) {
-            StoryItemCategoryCondition fittingCond = null;
-            foreach (StoryItemCategoryCondition cond in categories) {
-                if (cond.StoryItemCategory == category) {
-                    fittingCond = cond;
-                    break;
-                }
-            }
-            if (fittingCond != null) {
-                TreeIter iter = fittingCond.Iter;
-                TreeStore.Remove(ref iter);
-                fittingCond.Cleanup();
-                categories.Remove(fittingCond);
+        protected override void InsertConditionToTree(StoryItemConditionBase cond, TreeIter iter) {
+            if (iter.Equals(TreeIter.Zero)) {
+                TreeStore.AppendValues(cond);
             }
             else {
-                Console.WriteLine($"NO CONDITIONS FOUND FOR STORY ITEMS CATEGORY WITH ID {category.Id}");
+                TreeStore.AppendValues(iter, cond);
             }
         }
 
-        public void Cleanup() {
-            foreach (StoryItemCategoryCondition cond in categories) {
-                cond.Cleanup();
-            }
-            categories.Clear();
-            categories = null;
-            StoryItems = null;
+        protected override void RemoveConditionFromTree(StoryItemConditionBase cond) {
+            TreeIter iter = cond.Iter;
+            TreeStore.Remove(ref iter);
+        }
+
+        override public void Cleanup() {
+            base.Cleanup();
+            Entry = null;
             TreeStore.Clear();
             Model.Dispose();
             Model = null;

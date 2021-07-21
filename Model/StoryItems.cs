@@ -12,6 +12,8 @@ namespace PokemonTrackerEditor.Model {
         abstract public string Id { get; set; }
         public TreeIter Iter { get; set; }
 
+        abstract public int DependencyCount { get; }
+
         public StoryItemBase(string id) {
             this.id = id;
         }
@@ -43,11 +45,29 @@ namespace PokemonTrackerEditor.Model {
 
         override public string Id { get => id; set { id = value; Category.Parent.RuleSet.ReportChange(); } }
         public StoryItemCategory Category { get; private set; }
+        private List<StoryItemCondition> dependencies;
+        override public int DependencyCount => dependencies.Count();
         public StoryItem(string id, StoryItemCategory category) : base(id) {
             Category = category;
+            dependencies = new List<StoryItemCondition>();
+        }
+
+        public void AddDependency(StoryItemCondition dependency) {
+            if (!dependencies.Contains(dependency)) {
+                dependencies.Add(dependency);
+            }
+        }
+
+        public void RemoveDependency(StoryItemCondition dependency) {
+            dependencies.Remove(dependency);
         }
 
         public override void Cleanup() {
+            foreach (StoryItemCondition cond in dependencies) {
+                cond.Cleanup();
+            }
+            dependencies.Clear();
+            dependencies = null;
             Category = null;
         }
     }
@@ -58,29 +78,34 @@ namespace PokemonTrackerEditor.Model {
         public StoryItems Parent { get; private set; }
 
         private List<StoryItem> items;
-        private List<StoryItemCategoryCondition> conditions;
+        public override int DependencyCount {
+            get {
+                int ret = 0;
+                foreach (StoryItem item in items) {
+                    ret += item.DependencyCount;
+                }
+                return ret;
+            }
+        }
 
         public StoryItemCategory(string id, StoryItems parent) : base(id) {
             Parent = parent;
             items = new List<StoryItem>();
-            conditions = new List<StoryItemCategoryCondition>();
         }
 
-        public void RegisterConditions(StoryItemCategoryCondition cond) {
-            conditions.Add(cond);
-        }
-
-        public void UnregisterConditions(StoryItemCategoryCondition cond) {
-            conditions.Remove(cond);
+        public bool StoryItemNameAvailable(string name) {
+            foreach(StoryItem item in items) {
+                if (item.Id.Equals(name))
+                    return false;
+            }
+            return true;
         }
 
         public bool AddStoryItem(string storyItem) {
             StoryItem item = new StoryItem(storyItem, this);
             if (!items.Contains(item)) {
                 items.Add(item);
-                foreach (StoryItemCategoryCondition cond in conditions) {
-                    cond.AddStoryItem(item);
-                }
+                item.Iter = Parent.Model.AppendValues(Iter, item);
                 Parent.RuleSet.ReportChange();
                 return true;
             }
@@ -88,17 +113,14 @@ namespace PokemonTrackerEditor.Model {
         }
 
         public void RemoveStoryItem(StoryItem item) {
-            foreach (StoryItemCategoryCondition cond in conditions) {
-                cond.RemoveStoryItem(item);
-            }
+            TreeIter iter = item.Iter;
+            Parent.Model.Remove(ref iter);
             items.Remove(item);
             item.Cleanup();
             Parent.RuleSet.ReportChange();
         }
 
         override public void Cleanup() {
-            conditions.Clear();
-            conditions = null;
             foreach (StoryItem item in items) {
                 item.Cleanup();
             }
@@ -108,38 +130,28 @@ namespace PokemonTrackerEditor.Model {
 
     class StoryItems {
         private List<StoryItemCategory> categories;
-        private List<StoryItemsConditions> conditions;
-        public TreeStore TreeStore { get; private set; }
-        public TreeModelSort Model { get; private set; }
+        public TreeStore Model { get; private set; }
         public RuleSet RuleSet { get; private set; }
 
         public StoryItems(RuleSet ruleSet) {
             RuleSet = ruleSet;
-            TreeStore = new TreeStore(typeof(StoryItemBase));
-            Model = new TreeModelSort(TreeStore);
-            Model.SetSortFunc(0, StoryItemBase.Compare);
-            Model.SetSortColumnId(0, SortType.Ascending);
+            Model = new TreeStore(typeof(StoryItemBase));
             categories = new List<StoryItemCategory>();
-            conditions = new List<StoryItemsConditions>();
         }
 
-        public void RegisterConditions(StoryItemsConditions conditionInstance) {
-            if (!conditions.Contains(conditionInstance)) {
-                conditions.Add(conditionInstance);
+        public bool CategoryNameAvailable(string name) {
+            foreach (StoryItemCategory category in categories) {
+                if (category.Id.Equals(name))
+                    return false;
             }
-        }
-
-        public void UnregisterConditions(StoryItemsConditions conditionInstance) {
-            conditions.Remove(conditionInstance);
+            return true;
         }
 
         public bool AddStoryItemCategory(string category) {
             StoryItemCategory newCat = new StoryItemCategory(category, this);
             if (!categories.Contains(newCat)) {
+                newCat.Iter = Model.AppendValues(newCat);
                 categories.Add(newCat);
-                foreach (StoryItemsConditions conditionInstance in conditions) {
-                    conditionInstance.AddStoryItemCategory(newCat);
-                }
                 RuleSet.ReportChange();
                 return true;
             }
@@ -147,29 +159,22 @@ namespace PokemonTrackerEditor.Model {
         }
 
         public void RemoveStoryItemCategory(StoryItemCategory category) {
-            foreach (StoryItemsConditions conditionInstance in conditions) {
-                conditionInstance.RemoveStoryItemCategory(category);
-            }
             TreeIter iter = category.Iter;
-            TreeStore.Remove(ref iter);
+            Model.Remove(ref iter);
             categories.Remove(category);
             category.Cleanup();
             RuleSet.ReportChange();
         }
 
         public void Cleanup() {
-            conditions.Clear();
-            conditions = null;
             foreach (StoryItemCategory category in categories) {
                 category.Cleanup();
             }
             categories.Clear();
             categories = null;
-            TreeStore.Clear();
+            Model.Clear();
             Model.Dispose();
             Model = null;
-            TreeStore.Dispose();
-            TreeStore = null;
             RuleSet = null;
         }
     }

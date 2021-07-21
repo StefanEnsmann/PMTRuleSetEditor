@@ -18,9 +18,9 @@ namespace PokemonTrackerEditor.Model {
         public bool HasChanged { get; private set; }
 
         public RuleSet() {
-            treeStore = new TreeStore(typeof(TreeModelBaseClass));
+            treeStore = new TreeStore(typeof(DependencyEntryBase));
             Model = new TreeModelSort(treeStore);
-            Model.SetSortFunc(0, TreeModelBaseClass.Compare);
+            Model.SetSortFunc(0, DependencyEntryBase.Compare);
             Model.SetSortColumnId(0, SortType.Ascending);
             locations = new List<Location>();
             StoryItems = new StoryItems(this);
@@ -73,7 +73,6 @@ namespace PokemonTrackerEditor.Model {
         }
 
         public bool AddCheck(Location location, string check, Check.CheckType type) {
-            Console.WriteLine($"RuleSet.AddCheck({check})");
             Check chk = new Check(check, this, type);
             TreeIter parentIter;
             switch (type) {
@@ -89,12 +88,11 @@ namespace PokemonTrackerEditor.Model {
                     return false;
             }
             if (location.AddCheck(chk)) {
-                Console.WriteLine($"Location.AddCheck({chk.Id})=true");
                 chk.Iter = treeStore.AppendValues(parentIter, chk);
+                HasChanged = true;
                 return true;
             }
             else {
-                Console.WriteLine($"Location.AddCheck({chk.Id})=false");
                 chk.Cleanup();
                 return false;
             }
@@ -121,7 +119,7 @@ namespace PokemonTrackerEditor.Model {
         }
 
         public void SaveToFile(string filepath) {
-
+            HasChanged = false;
         }
 
         public static RuleSet FromFile(string filepath) {
