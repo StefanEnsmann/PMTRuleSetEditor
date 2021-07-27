@@ -105,7 +105,7 @@ namespace PokemonTrackerEditor.Model {
         }
 
         public void AddORCollection() {
-            string template = "AND ";
+            string template = "OR ";
             int value = 0;
             StoryItemORCondition cond = new StoryItemORCondition(template + value, this);
             while (conditions.Contains(cond)) {
@@ -124,6 +124,11 @@ namespace PokemonTrackerEditor.Model {
             conditions.Remove(cond);
             RemoveConditionFromTree(cond);
             cond.Cleanup();
+            if (conditions.Count == 0) {
+                if (Container != null) {
+                    Container.RemoveStoryItemCondition(this);
+                }
+            }
         }
 
         virtual protected void InsertConditionToTree(StoryItemConditionBase cond, TreeIter iter) {
@@ -163,14 +168,13 @@ namespace PokemonTrackerEditor.Model {
         public TreeStore TreeStore { get; private set; }
         public TreeModelSort Model { get; private set; }
 
-        public StoryItemsConditions(DependencyEntry entry) : base("base", null) {
+        public StoryItemsConditions(DependencyEntry entry) : base("Conditions", null) {
             Entry = entry;
-            conditions = new List<StoryItemConditionBase>();
             TreeStore = new TreeStore(typeof(StoryItemConditionBase));
             Model = new TreeModelSort(TreeStore);
             Model.SetSortFunc(0, Compare);
             Model.SetSortColumnId(0, SortType.Ascending);
-            Iter = TreeIter.Zero;
+            Iter = TreeStore.AppendValues(this);
         }
 
         protected override void ReportChange() {
@@ -178,17 +182,20 @@ namespace PokemonTrackerEditor.Model {
         }
 
         protected override void InsertConditionToTree(StoryItemConditionBase cond, TreeIter iter) {
-            if (iter.Equals(TreeIter.Zero)) {
-                TreeStore.AppendValues(cond);
-            }
-            else {
-                TreeStore.AppendValues(iter, cond);
-            }
+            cond.Iter = TreeStore.AppendValues(iter, cond);
         }
 
         protected override void RemoveConditionFromTree(StoryItemConditionBase cond) {
             TreeIter iter = cond.Iter;
             TreeStore.Remove(ref iter);
+        }
+
+        public void RemoveAll() {
+            StoryItemConditionBase[] copy = new StoryItemConditionBase[conditions.Count];
+            conditions.CopyTo(copy);
+            foreach (StoryItemConditionBase cond in copy) {
+                RemoveStoryItemCondition(cond);
+            }
         }
 
         override public void Cleanup() {

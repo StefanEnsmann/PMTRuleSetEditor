@@ -69,5 +69,15 @@ namespace PokemonTrackerEditor.View.MainWindow {
             StoryItemBase dep = (StoryItemBase)model.GetValue(iter, 0);
             (cell as CellRendererText).Text = dep.Id;
         }
+
+        public static void LocalizationCodeCell(TreeViewColumn column, CellRenderer cell, TreeModel model, TreeIter iter) {
+            LocalizationEntry entry = (LocalizationEntry)model.GetValue(iter, 0);
+            (cell as CellRendererText).Text = entry.Code;
+        }
+
+        public static void LocalizationValueCell(TreeViewColumn column, CellRenderer cell, TreeModel model, TreeIter iter) {
+            LocalizationEntry entry = (LocalizationEntry)model.GetValue(iter, 0);
+            (cell as CellRendererText).Text = entry.Value;
+        }
     }
 }

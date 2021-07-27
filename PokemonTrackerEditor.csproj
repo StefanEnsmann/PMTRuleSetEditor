@@ -79,6 +79,8 @@
   <ItemGroup>
     <Compile Include="Model\DependencyEntry.cs" />
     <Compile Include="MainProg.cs" />
+    <Compile Include="Model\JSONConverters.cs" />
+    <Compile Include="Model\Localization.cs" />
     <Compile Include="Model\RuleSet.cs" />
     <Compile Include="Model\StoryItems.cs" />
     <Compile Include="Model\StoryItemsConditions.cs" />

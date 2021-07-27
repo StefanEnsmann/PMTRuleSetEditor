@@ -53,5 +53,11 @@ namespace PokemonTrackerEditor.View.MainWindow {
                 window.Main.RuleSet.StoryItems.Model.EmitRowChanged(path, iter);
             }
         }
+
+        public static void OnLocalizationValueEdited(MainWindow window, TreePath path, string newText) {
+            window.CurrentLocationSelection.Localization.Model.GetIter(out TreeIter iter, path);
+            LocalizationEntry entry = (LocalizationEntry)window.CurrentLocationSelection.Localization.Model.GetValue(iter, 0);
+            entry.Value = newText;
+        }
     }
 }

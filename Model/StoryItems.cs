@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 
 using Gtk;
 
+using Newtonsoft.Json;
+
 namespace PokemonTrackerEditor.Model {
     abstract class StoryItemBase : IEquatable<StoryItemBase> {
         protected string id;
@@ -63,8 +65,10 @@ namespace PokemonTrackerEditor.Model {
         }
 
         public override void Cleanup() {
-            foreach (StoryItemCondition cond in dependencies) {
-                cond.Cleanup();
+            StoryItemCondition[] copy = new StoryItemCondition[dependencies.Count];
+            dependencies.CopyTo(copy);
+            foreach (StoryItemCondition cond in copy) {
+                cond.Container.RemoveStoryItemCondition(cond);
             }
             dependencies.Clear();
             dependencies = null;
@@ -78,6 +82,7 @@ namespace PokemonTrackerEditor.Model {
         public StoryItems Parent { get; private set; }
 
         private List<StoryItem> items;
+        public List<StoryItem> Items => new List<StoryItem>(items);
         public override int DependencyCount {
             get {
                 int ret = 0;
@@ -128,8 +133,10 @@ namespace PokemonTrackerEditor.Model {
         }
     }
 
+    [JsonConverter(typeof(StoryItemConverter))]
     class StoryItems {
         private List<StoryItemCategory> categories;
+        public List<StoryItemCategory> Categories => new List<StoryItemCategory>(categories);
         public TreeStore Model { get; private set; }
         public RuleSet RuleSet { get; private set; }
 

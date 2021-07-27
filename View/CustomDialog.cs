@@ -46,8 +46,9 @@ namespace PokemonTrackerEditor.View {
             jsonFileFilter.AddPattern("*.json");
             dlg.AddFilter(jsonFileFilter);
             int response = dlg.Run();
+            string ret = dlg.Filename;
             dlg.Destroy();
-            return response == (int)ResponseType.Accept ? dlg.Filename : null;
+            return response == (int)ResponseType.Accept ? ret : null;
         }
 
         private static bool FilterCheckList(TreeModel model, TreeIter iter, Check.CheckType type) {
@@ -111,7 +112,7 @@ namespace PokemonTrackerEditor.View {
             cb.GetActiveIter(out TreeIter iter);
             dlg.Destroy();
             if (response == 0) {
-                return model.GetValue(iter, 0) is StoryItem item ? item : null;
+                return iter.Equals(TreeIter.Zero) ? null : model.GetValue(iter, 0) is StoryItem item ? item : null;
             }
             else {
                 return null;

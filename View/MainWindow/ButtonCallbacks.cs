@@ -35,9 +35,6 @@ namespace PokemonTrackerEditor.View.MainWindow {
         public static void OnNewFileClick(MainWindow window) {
             RuleSet ruleSet = window.Main.RuleSet;
             if (AskForFileSave(window)) {
-                if (ruleSet != null) {
-                    ruleSet.Cleanup();
-                }
                 window.SetRuleSet(window.Main.NewRuleSet(), null);
             }
         }
@@ -70,10 +67,12 @@ namespace PokemonTrackerEditor.View.MainWindow {
         }
 
         public static void OnAddLocationClick(MainWindow window) {
+            DependencyEntry currentSelection = window.CurrentLocationSelection;
+            Location loc = currentSelection == null ? null : currentSelection is Location location ? location : ((Check)currentSelection).location;
             RuleSet ruleSet = window.Main.RuleSet;
             string template = "new_location_";
             int value = 0;
-            while (!ruleSet.AddLocation(template + value)) {
+            while (!ruleSet.AddLocation(template + value, loc)) {
                 ++value;
             }
         }
@@ -119,21 +118,71 @@ namespace PokemonTrackerEditor.View.MainWindow {
             }
         }
 
+        private static StoryItemConditionBase GetSelectedStoryItemCondition(MainWindow window, TreeView treeView) {
+            treeView.Selection.GetSelected(out TreeModel model, out TreeIter iter);
+            if (!iter.Equals(TreeIter.Zero) && model.GetValue(iter, 0) is StoryItemConditionBase selection) {
+                return selection;
+            }
+            else {
+                return null;
+            }
+        }
+
+        private static StoryItemConditionCollection GetSelectedStoryItemConditionContainer(MainWindow window, TreeView treeView) {
+            StoryItemConditionBase selection = GetSelectedStoryItemCondition(window, treeView);
+            if (selection != null) {
+                if (selection is StoryItemCondition selectedItem) {
+                    return selectedItem.Container;
+                }
+                else if (selection is StoryItemConditionCollection collection) {
+                    return collection;
+                }
+                else {
+                    return null;
+                }
+            }
+            else {
+                return window.CurrentLocationSelection.StoryItemsConditions;
+            }
+        }
+
         public static void OnAddStoryItemConditionClick(MainWindow window, TreeView treeView) {
             if (window.CurrentLocationSelection != null) {
                 StoryItem storyItem = CustomDialog.SelectStoryItem(window, "Select story item", window.Main.RuleSet.StoryItems.Model);
                 if (storyItem != null) {
-                    if (treeView.Selection.GetSelected(out TreeModel model, out TreeIter iter) && model.GetValue(iter, 0) is StoryItemConditionBase selection) {
-                        if (selection is StoryItemCondition selectedItem) {
-                            selectedItem.Container.AddStoryItemCondition(storyItem);
-                        }
-                        else if (selection is StoryItemConditionCollection collection) {
-                            collection.AddStoryItemCondition(storyItem);
-                        }
-                    }
-                    else {
-                        window.CurrentLocationSelection.StoryItemsConditions.AddStoryItemCondition(storyItem);
-                    }
+                    StoryItemConditionCollection collection = GetSelectedStoryItemConditionContainer(window, treeView);
+                    Console.WriteLine(collection.Id);
+                    collection.AddStoryItemCondition(storyItem);
+                }
+            }
+        }
+
+        public static void OnAddStoryItemConditionANDCollectionClick(MainWindow window, TreeView treeView) {
+            if (window.CurrentLocationSelection != null) {
+                StoryItemConditionCollection collection = GetSelectedStoryItemConditionContainer(window, treeView);
+                Console.WriteLine(collection.Id);
+                collection.AddANDCollection();
+            }
+        }
+
+        public static void OnAddStoryItemConditionORCollectionClick(MainWindow window, TreeView treeView) {
+            if (window.CurrentLocationSelection != null) {
+                StoryItemConditionCollection collection = GetSelectedStoryItemConditionContainer(window, treeView);
+                Console.WriteLine(collection.Id);
+                collection.AddORCollection();
+            }
+        }
+
+        public static void OnRemoveStoryItemConditionClick(MainWindow window, TreeView treeView) {
+            if (window.CurrentLocationSelection != null) {
+                StoryItemConditionBase selection = GetSelectedStoryItemCondition(window, treeView);
+                if (selection is StoryItemsConditions conditions) {
+                    Console.WriteLine("Removing all conditions");
+                    conditions.RemoveAll();
+                }
+                else {
+                    Console.WriteLine(selection.Id);
+                    selection.Container.RemoveStoryItemCondition(selection);
                 }
             }
         }
@@ -157,6 +206,27 @@ namespace PokemonTrackerEditor.View.MainWindow {
                     ++value;
                 }
             }
+        }
+
+        public static void OnRemoveStoryItemClick(MainWindow window) {
+            StoryItemBase currentSelection = window.CurrentStoryItemSelection;
+            if (window.CurrentStoryItemSelection != null) {
+                if (currentSelection is StoryItemCategory category) {
+                    window.Main.RuleSet.StoryItems.RemoveStoryItemCategory(category);
+                }
+                else {
+                    StoryItem storyItem = currentSelection as StoryItem;
+                    storyItem.Category.RemoveStoryItem(storyItem);
+                }
+            }
+        }
+
+        public static void OnMoveUpStoryItemClick(MainWindow window) {
+
+        }
+
+        public static void OnMoveDownStoryItemClick(MainWindow window) {
+
         }
     }
 }

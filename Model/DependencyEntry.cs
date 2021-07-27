@@ -46,7 +46,7 @@ namespace PokemonTrackerEditor.Model {
     class LocationCategory : DependencyEntryBase {
         public Location Parent { get; private set; }
         public Check.CheckType Type { get; private set; }
-        public int CheckCount {
+        public virtual int CheckCount {
             get {
                 switch(Type) {
                     case Check.CheckType.ITEM:
@@ -67,13 +67,20 @@ namespace PokemonTrackerEditor.Model {
         }
     }
 
+    class LocationCategoryForLocations : LocationCategory {
+        public override int CheckCount => Parent.LocationCount;
+        public LocationCategoryForLocations(string id, Location parent, RuleSet ruleSet) : base(id, parent, Check.CheckType.ITEM, ruleSet) {
+
+        }
+    }
+
     abstract class DependencyEntry : DependencyEntryBase {
         private List<Check> itemsConditions;
         private List<Check> pokemonConditions;
         private List<Check> tradesConditions;
         private List<Check> trainersConditions;
         public StoryItemsConditions StoryItemsConditions { get; private set; }
-        private Dictionary<string, string> localization;
+        public Localization Localization { get; private set; }
         private TreeStore itemsTreeStore;
         private TreeStore pokemonTreeStore;
         private TreeStore tradesTreeStore;
@@ -96,7 +103,6 @@ namespace PokemonTrackerEditor.Model {
             tradesConditions = new List<Check>();
             trainersConditions = new List<Check>();
             StoryItemsConditions = new StoryItemsConditions(this);
-            localization = new Dictionary<string, string>();
             itemsTreeStore = new TreeStore(typeof(Check));
             ItemsModel = new TreeModelSort(itemsTreeStore);
             pokemonTreeStore = new TreeStore(typeof(Check));
@@ -105,13 +111,13 @@ namespace PokemonTrackerEditor.Model {
             TradesModel = new TreeModelSort(tradesTreeStore);
             trainersTreeStore = new TreeStore(typeof(Check));
             TrainersModel = new TreeModelSort(trainersTreeStore);
+            Localization = new Localization(RuleSet, RuleSet.Main.SupportedLanguages.Keys.ToList(), new List<string>());
         }
 
         virtual public void Cleanup() {
             foreach (List<Check> conditions in new List<List<Check>>() { itemsConditions, pokemonConditions, tradesConditions, trainersConditions }) {
                 conditions.Clear();
             }
-            localization.Clear();
             StoryItemsConditions.Cleanup();
         }
 
@@ -166,6 +172,10 @@ namespace PokemonTrackerEditor.Model {
             condition.RemoveDependingEntry(this);
             RuleSet.ReportChange();
         }
+
+        public virtual void SetLanguageActive(string language, bool active=true) {
+            Localization.SetLanguageActive(language, active);
+        }
     }
 
     class Location : DependencyEntry {
@@ -173,23 +183,38 @@ namespace PokemonTrackerEditor.Model {
         private List<Check> pokemon;
         private List<Check> trades;
         private List<Check> trainers;
+        private List<Location> locations;
 
-        public int CheckCount => ItemCount + PokemonCount + TradeCount + TrainerCount;
+        public int CheckCount => ItemCount + PokemonCount + TradeCount + TrainerCount + SumLocationChecks();
         public int ItemCount => items.Count;
         public int PokemonCount => pokemon.Count;
         public int TradeCount => trades.Count;
         public int TrainerCount => trainers.Count;
+        public int LocationCount => locations.Count;
 
         public TreeIter ItemIter { get; set; }
         public TreeIter PokemonIter { get; set; }
         public TreeIter TradeIter { get; set; }
         public TreeIter TrainerIter { get; set; }
+        public TreeIter LocationIter { get; set; }
 
-        public Location(string id, RuleSet ruleSet) : base(id, ruleSet) {
+        public Location Parent { get; private set; }
+
+        public Location(string id, RuleSet ruleSet, Location parent = null) : base(id, ruleSet) {
             items = new List<Check>();
             pokemon = new List<Check>();
             trades = new List<Check>();
             trainers = new List<Check>();
+            locations = new List<Location>();
+            Parent = parent;
+        }
+
+        private int SumLocationChecks() {
+            int ret = 0;
+            foreach (Location loc in locations) {
+                ret += loc.CheckCount;
+            }
+            return ret;
         }
 
         override public void Cleanup() {
@@ -199,6 +224,23 @@ namespace PokemonTrackerEditor.Model {
                     check.Cleanup();
                 }
                 checks.Clear();
+            }
+            foreach (Location loc in locations) {
+                loc.Cleanup();
+            }
+            locations.Clear();
+            Parent = null;
+        }
+
+        public override void SetLanguageActive(string language, bool active = true) {
+            base.SetLanguageActive(language, active);
+            foreach (List<Check> checks in new List<List<Check>>() { items, pokemon, trades, trainers }) {
+                foreach (Check check in checks) {
+                    check.SetLanguageActive(language, active);
+                }
+            }
+            foreach (Location loc in locations) {
+                loc.SetLanguageActive(language, active);
             }
         }
 
@@ -210,6 +252,16 @@ namespace PokemonTrackerEditor.Model {
                 available = false;
             }
             check.Cleanup();
+            return available;
+        }
+
+        public bool LocationNameAvailable(string locationName) {
+            Location location = new Location(locationName, RuleSet);
+            bool available = true;
+            if (locations.Contains(location)) {
+                available = false;
+            }
+            location.Cleanup();
             return available;
         }
 
@@ -243,6 +295,22 @@ namespace PokemonTrackerEditor.Model {
             List<Check> list = GetListForCheck(check);
             check.Cleanup();
             while (list.Remove(check)) ;
+            RuleSet.ReportChange();
+        }
+
+        public bool AddLocation(Location location) {
+            if (!locations.Contains(location)) {
+                locations.Add(location);
+                RuleSet.ReportChange();
+                return true;
+            }
+            return false;
+        }
+
+        public void RemoveLocation(Location location) {
+            location.Cleanup();
+            while (locations.Remove(location)) ;
+            RuleSet.ReportChange();
         }
     }
 
