@@ -4,10 +4,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+using Newtonsoft.Json;
 using Gtk;
 
 namespace PokemonTrackerEditor.Model {
-    abstract class DependencyEntryBase : IEquatable<DependencyEntryBase> {
+    abstract class DependencyEntryBase : IEquatable<DependencyEntryBase>, IComparable<DependencyEntryBase> {
         private string id;
         public string Id { get => id; set { id = value; RuleSet.ReportChange(); } }
         public TreeIter Iter { get; set; }
@@ -40,6 +41,10 @@ namespace PokemonTrackerEditor.Model {
 
         public static int Compare(TreeModel model, TreeIter a, TreeIter b) {
             return Compare((DependencyEntryBase)model.GetValue(a, 0), (DependencyEntryBase)model.GetValue(b, 0));
+        }
+
+        public int CompareTo(DependencyEntryBase other) {
+            return Compare(this, other);
         }
     }
 
@@ -79,6 +84,10 @@ namespace PokemonTrackerEditor.Model {
         private List<Check> pokemonConditions;
         private List<Check> tradesConditions;
         private List<Check> trainersConditions;
+        public List<Check> ItemsConditions => new List<Check>(itemsConditions);
+        public List<Check> PokemonConditions => new List<Check>(pokemonConditions);
+        public List<Check> TradesConditions => new List<Check>(tradesConditions);
+        public List<Check> TrainersConditions => new List<Check>(trainersConditions);
         public StoryItemsConditions StoryItemsConditions { get; private set; }
         public Localization Localization { get; private set; }
         private TreeStore itemsTreeStore;
@@ -178,12 +187,18 @@ namespace PokemonTrackerEditor.Model {
         }
     }
 
+    [JsonConverter(typeof(LocationConverter))]
     class Location : DependencyEntry {
         private List<Check> items;
+        public List<Check> Items => new List<Check>(items);
         private List<Check> pokemon;
+        public List<Check> Pokemon => new List<Check>(pokemon);
         private List<Check> trades;
+        public List<Check> Trades => new List<Check>(trades);
         private List<Check> trainers;
+        public List<Check> Trainers => new List<Check>(trainers);
         private List<Location> locations;
+        public List<Location> Locations => new List<Location>(locations);
 
         public int CheckCount => ItemCount + PokemonCount + TradeCount + TrainerCount + SumLocationChecks();
         public int ItemCount => items.Count;
@@ -314,6 +329,7 @@ namespace PokemonTrackerEditor.Model {
         }
     }
 
+    [JsonConverter(typeof(CheckConverter))]
     class Check : DependencyEntry {
         public enum CheckType {
             ITEM, POKEMON, TRADE, TRAINER

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+using Newtonsoft.Json;
 using Gtk;
 
 namespace PokemonTrackerEditor.Model {
@@ -42,6 +43,7 @@ namespace PokemonTrackerEditor.Model {
         }
     }
 
+    [JsonConverter(typeof(StoryItemConditionConverter))]
     class StoryItemCondition : StoryItemConditionBase {
         override public string Id => StoryItem.Category.Id + "/" + StoryItem.Id;
 
@@ -61,6 +63,7 @@ namespace PokemonTrackerEditor.Model {
 
     abstract class StoryItemConditionCollection : StoryItemConditionBase {
         protected List<StoryItemConditionBase> conditions;
+        public List<StoryItemConditionBase> Conditions => new List<StoryItemConditionBase>(conditions);
         public int Count {
             get {
                 int ret = 0;
@@ -149,6 +152,7 @@ namespace PokemonTrackerEditor.Model {
         }
     }
 
+    [JsonConverter(typeof(StoryItemConditionConverter))]
     class StoryItemANDCondition : StoryItemConditionCollection {
 
         public StoryItemANDCondition(string id, StoryItemConditionCollection container) : base(id, container) {
@@ -156,6 +160,7 @@ namespace PokemonTrackerEditor.Model {
         }
     }
 
+    [JsonConverter(typeof(StoryItemConditionConverter))]
     class StoryItemORCondition : StoryItemConditionCollection {
 
         public StoryItemORCondition(string id, StoryItemConditionCollection container) : base(id, container) {
@@ -163,6 +168,7 @@ namespace PokemonTrackerEditor.Model {
         }
     }
 
+    [JsonConverter(typeof(StoryItemConditionConverter))]
     class StoryItemsConditions : StoryItemConditionCollection {
         public DependencyEntry Entry { get; private set; }
         public TreeStore TreeStore { get; private set; }

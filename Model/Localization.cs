@@ -23,7 +23,15 @@ namespace PokemonTrackerEditor.Model {
     [JsonConverter(typeof(LocalizationConverter))]
     class Localization {
         private Dictionary<string, LocalizationEntry> translations;
-        public Dictionary<string, LocalizationEntry> Translation => new Dictionary<string, LocalizationEntry>(translations);
+        public Dictionary<string, string> Translations {
+            get {
+                Dictionary<string, string> trans = new Dictionary<string, string>();
+                foreach (string language in RuleSet.ActiveLanguages) {
+                    trans.Add(language, translations[language].Value);
+                }
+                return trans;
+            }
+        }
         private TreeStore treeStore;
         public TreeModelSort Model { get; private set; }
         public RuleSet RuleSet { get; private set; }
@@ -48,7 +56,7 @@ namespace PokemonTrackerEditor.Model {
             }
         }
 
-        public void SetLanguageActive(string languageCode, bool active=true) {
+        public void SetLanguageActive(string languageCode, bool active = true) {
             LocalizationEntry entry = translations[languageCode];
             if (entry.Iter.Equals(TreeIter.Zero) && active) {
                 entry.Iter = treeStore.AppendValues(entry);
