@@ -11,6 +11,9 @@ using Gtk;
 namespace PokemonTrackerEditor.Model {
     [JsonConverter(typeof(RuleSetConverter))]
     class RuleSet {
+        public string Name { get; private set; }
+        public string Game { get; private set; }
+
         private TreeStore treeStore;
         public TreeModelSort Model { get; private set; }
         private List<Location> locations;
@@ -41,6 +44,14 @@ namespace PokemonTrackerEditor.Model {
             StoryItems.Cleanup();
             activeLanguages.Clear();
             treeStore.Clear();
+        }
+
+        public void SetName(string name) {
+            Name = name;
+        }
+
+        public void SetGame(string game) {
+            Game = game;
         }
 
         public bool LocationNameAvailable(string location) {

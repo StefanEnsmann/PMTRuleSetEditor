@@ -79,5 +79,20 @@ namespace PokemonTrackerEditor.View.MainWindow {
             LocalizationEntry entry = (LocalizationEntry)model.GetValue(iter, 0);
             (cell as CellRendererText).Text = entry.Value;
         }
+
+        public static void PokedexIndexCell(TreeViewColumn column, CellRenderer cell, TreeModel model, TreeIter iter) {
+            PokedexData.PokedexEntry entry = (PokedexData.PokedexEntry)model.GetValue(iter, 0);
+            (cell as CellRendererText).Text = entry.nr.ToString("D4");
+        }
+
+        public static void PokedexNameCell(TreeViewColumn column, CellRenderer cell, TreeModel model, TreeIter iter) {
+            PokedexData.PokedexEntry entry = (PokedexData.PokedexEntry)model.GetValue(iter, 0);
+            (cell as CellRendererText).Text = entry.Localization.TryGetValue("en", out string name) ? name : "MISSING";
+        }
+
+        public static void PokedexAvailableCell(TreeViewColumn column, CellRenderer cell, TreeModel model, TreeIter iter) {
+            PokedexData.PokedexEntry entry = (PokedexData.PokedexEntry)model.GetValue(iter, 0);
+            (cell as CellRendererToggle).Active = entry.available;
+        }
     }
 }

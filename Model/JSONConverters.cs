@@ -17,13 +17,35 @@ namespace PokemonTrackerEditor.Model {
         }
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer) {
             RuleSet ruleSet = (RuleSet)value;
+            Formatting serializerBackup = serializer.Formatting;
+            Formatting writerBackup = writer.Formatting;
             writer.WriteStartObject();
 
+            writer.WritePropertyName("name");
+            writer.WriteValue(ruleSet.Name ?? "");
+
+            writer.WritePropertyName("game");
+            writer.WriteValue(ruleSet.Game ?? "");
+
             writer.WritePropertyName("pokedex");
-            writer.WriteValue("pokedex/gen2.json"); // TODO: Write actual value
+            serializer.Formatting = Formatting.None;
+            writer.Formatting = Formatting.None;
+            writer.WriteStartArray();
+            foreach (PokedexData.PokedexEntry entry in ruleSet.Main.Pokedex.List) {
+                if (entry.available) {
+                    writer.WriteValue(entry.nr);
+                }
+            }
+            writer.WriteEndArray();
+            writer.Formatting = writerBackup;
+            serializer.Formatting = serializerBackup;
 
             writer.WritePropertyName("languages");
+            serializer.Formatting = Formatting.None;
+            writer.Formatting = Formatting.None;
             serializer.Serialize(writer, ruleSet.ActiveLanguages);
+            writer.Formatting = writerBackup;
+            serializer.Formatting = serializerBackup;
 
             // maps
 
@@ -214,6 +236,130 @@ namespace PokemonTrackerEditor.Model {
                 writer.WriteValue(pair.Value);
             }
             writer.WriteEndObject();
+        }
+    }
+
+    class PokedexDataConverter : JsonConverter {
+        public override bool CanConvert(Type objectType) {
+            return objectType == typeof(PokedexData);
+        }
+
+        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer) {
+            PokedexData pokedex = new PokedexData();
+            reader.Read(); // object key
+            while (reader.TokenType != JsonToken.EndObject) {
+                string currentPosition = reader.Value.ToString();
+                switch (currentPosition) {
+                    case "overrides":
+                        ReadOverrides(reader, pokedex);
+                        break;
+                    case "templates":
+                        ReadTemplates(reader, pokedex);
+                        break;
+                    case "list":
+                        ReadList(reader, pokedex);
+                        break;
+                }
+                reader.Read(); // object key or EndObject
+            }
+            return pokedex;
+        }
+
+        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer) {
+            throw new NotImplementedException();
+        }
+
+        private void ReadList(JsonReader reader, PokedexData pokedex) {
+            reader.Read(); // StartArray
+            reader.Read(); // StartObject or EndArray
+            while (reader.TokenType != JsonToken.EndArray) {
+                pokedex.AddPokemon(ReadListEntry(reader));
+                reader.Read(); // StartObject or EndArray
+            }
+        }
+
+        private PokedexData.PokedexEntry ReadListEntry(JsonReader reader) {
+            PokedexData.PokedexEntry entry = new PokedexData.PokedexEntry();
+            reader.Read();
+            while (reader.TokenType != JsonToken.EndObject) {
+                string entryKey = reader.Value.ToString();
+                switch (entryKey) {
+                    case "localization":
+                        ReadLocalization(reader, entry);
+                        break;
+                    case "nr":
+                        entry.nr = reader.ReadAsInt32() ?? -1;
+                        break;
+                    case "typeA":
+                        entry.typeA = reader.ReadAsString();
+                        break;
+                    case "typeB":
+                        entry.typeB = reader.ReadAsString();
+                        break;
+                }
+                reader.Read();
+            }
+            return entry;
+        }
+
+        private void ReadLocalization(JsonReader reader, PokedexData.PokedexEntry entry) {
+            reader.Read(); // StartObject
+            reader.Read(); // localization key
+            while (reader.TokenType != JsonToken.EndObject) {
+                entry.Localization.Add(reader.Value.ToString(), reader.ReadAsString());
+                reader.Read(); // localization key or EndObject
+            }
+        }
+
+        private void ReadTemplates(JsonReader reader, PokedexData pokedex) {
+            reader.Read(); // StartObject
+            reader.Read(); // template key
+            while (reader.TokenType != JsonToken.EndObject) {
+                string templateKey = reader.Value.ToString();
+                List<int> templateList = new List<int>();
+                reader.Read(); // StartArray
+                int? index = reader.ReadAsInt32();
+                while (index.HasValue) {
+                    templateList.Add(index.Value);
+                    index = reader.ReadAsInt32();
+                }
+                pokedex.Templates.Add(templateKey, templateList);
+                reader.Read(); // template key or EndObject
+            }
+        }
+
+        private void ReadOverrides(JsonReader reader, PokedexData pokedex) {
+            reader.Read(); // StartObject
+            reader.Read(); // override key
+            while (reader.TokenType != JsonToken.EndObject) {
+                string overrideName = reader.Value.ToString();
+                if (overrideName != null) {
+                    pokedex.Overrides.Add(overrideName, ReadOverride(reader));
+                }
+                reader.Read(); // override key or EndObject
+            }
+        }
+
+        private Dictionary<string, Dictionary<string, string>> ReadOverride(JsonReader reader) {
+            reader.Read(); // StartObject
+            reader.Read(); // override index
+            Dictionary<string, Dictionary<string, string>> overrideData = new Dictionary<string, Dictionary<string, string>>();
+            while (reader.TokenType != JsonToken.EndObject) {
+                string overrideIndex = reader.Value.ToString();
+                Dictionary<string, string> overrideIndexData = new Dictionary<string, string>();
+                if (overrideIndex != null) {
+                    reader.Read(); // StartObject
+                    reader.Read(); // override index data
+                    while (reader.TokenType != JsonToken.EndObject) {
+                        string overrideIndexDataKey = reader.Value.ToString();
+                        overrideIndexData.Add(overrideIndexDataKey, reader.ReadAsString());
+                        reader.Read(); // override index data or EndObject
+                    }
+                }
+                overrideData.Add(overrideIndex, overrideIndexData);
+                reader.Read(); // override index or EndObject
+            }
+            return null;
         }
     }
 }

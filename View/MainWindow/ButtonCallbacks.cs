@@ -228,5 +228,17 @@ namespace PokemonTrackerEditor.View.MainWindow {
         public static void OnMoveDownStoryItemClick(MainWindow window) {
 
         }
+
+        public static void OnApplyPokedexTemplateClick(MainWindow window, string template) {
+            foreach (PokedexData.PokedexEntry entry in window.Main.Pokedex.List) {
+                entry.available = false;
+            }
+            if (template != null) {
+                foreach (int idx in window.Main.Pokedex.Templates[template]) {
+                    window.Main.Pokedex.List[idx - 1].available = true;
+                }
+            }
+            window.pokedexTreeView.QueueDraw();
+        }
     }
 }

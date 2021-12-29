@@ -59,5 +59,11 @@ namespace PokemonTrackerEditor.View.MainWindow {
             LocalizationEntry entry = (LocalizationEntry)window.CurrentLocationSelection.Localization.Model.GetValue(iter, 0);
             entry.Value = newText;
         }
+
+        public static void OnPokedexEntryToggled(MainWindow window, TreePath path) {
+            window.Main.Pokedex.ListStore.GetIter(out TreeIter iter, path);
+            PokedexData.PokedexEntry entry = (PokedexData.PokedexEntry)window.Main.Pokedex.ListStore.GetValue(iter, 0);
+            entry.available = !entry.available;
+        }
     }
 }

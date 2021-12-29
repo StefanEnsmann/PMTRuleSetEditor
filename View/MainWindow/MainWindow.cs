@@ -15,6 +15,7 @@ namespace PokemonTrackerEditor.View.MainWindow {
         private TreeView locationTreeView;
         private TreeView locationLocalizationTreeView;
         private TreeView storyItemsTreeView;
+        public TreeView pokedexTreeView { get; private set; }
 
         private Dictionary<string, TreeView> locationConditionsTreeViews;
 
@@ -133,7 +134,26 @@ namespace PokemonTrackerEditor.View.MainWindow {
 
             Notebook mainNotebook = new Notebook();
 
+            // General view
             VBox generalBox = new VBox { Spacing = 5 };
+
+            Frame rulesetNameFrame = new Frame("Ruleset Name");
+            Entry rulesetNameEntry = new Entry();
+            rulesetNameEntry.Changed += (object sender, EventArgs args) => { Main.RuleSet.SetName(((Entry)sender).Text); };
+            rulesetNameFrame.Add(rulesetNameEntry);
+            generalBox.PackStart(rulesetNameFrame, false, false, 0);
+
+            Frame gameFrame = new Frame("Game");
+            ListStore gameModel = new ListStore(typeof(string));
+            foreach (string game in Main.DefaultGames) {
+                gameModel.AppendValues(game);
+            }
+            ComboBoxEntry gameNameComboBox = ComboBoxEntry.NewText();
+            gameNameComboBox.Model = gameModel;
+            gameNameComboBox.Changed += (object sender, EventArgs args) => { Main.RuleSet.SetGame(((ComboBox)sender).ActiveText); };
+            gameFrame.Add(gameNameComboBox);
+
+            generalBox.PackStart(gameFrame, false, false, 0);
 
             Frame languagesFrame = new Frame("Languages");
             Table languagesTable = new Table(3, 3, false);
@@ -264,12 +284,13 @@ namespace PokemonTrackerEditor.View.MainWindow {
             locationEditorTable.Attach(storyItemConditionFrame, 1, 2, 2, 3);
 
             editorPaned.Add2(locationEditorTable);
-            editorPaned.Position = (int)(windowWidth  * 0.4);
+            editorPaned.Position = (int)(windowWidth * 0.4);
 
             mainNotebook.AppendPage(editorPaned, new Label { Text = "Locations" });
 
             // Story Items
             VBox storyItemsBox = new VBox { Spacing = 5 };
+            ScrolledWindow storyItemsScrolledWindow = new ScrolledWindow();
             storyItemsTreeView = new TreeView(main.RuleSet.StoryItems.Model);
             storyItemsTreeView.Selection.Changed += (object sender, EventArgs args) => { EventCallbacks.OnStoryItemTreeSelectionChanged(this, (TreeSelection)sender); };
 
@@ -286,7 +307,8 @@ namespace PokemonTrackerEditor.View.MainWindow {
             storyItemsDependenciesColumn.SetCellDataFunc(storyItemsDependenciesColumnText, new TreeCellDataFunc(Renderers.StoryItemDependencyCount));
             storyItemsTreeView.AppendColumn(storyItemsDependenciesColumn);
 
-            storyItemsBox.PackStart(storyItemsTreeView, true, true, 0);
+            storyItemsScrolledWindow.Add(storyItemsTreeView);
+            storyItemsBox.PackStart(storyItemsScrolledWindow, true, true, 0);
 
             Toolbar storyItemsToolbar = new Toolbar();
             ToolButton addCategoryButton = new ToolButton(Stock.Add) { Label = "Category" };
@@ -308,6 +330,47 @@ namespace PokemonTrackerEditor.View.MainWindow {
             storyItemsBox.PackStart(storyItemsToolbar, false, false, 0);
 
             mainNotebook.AppendPage(storyItemsBox, new Label { Text = "Story Items" });
+
+            // Pokedex
+            VBox pokedexBox = new VBox { Spacing = 5 };
+            ScrolledWindow pokedexScrolledWindow = new ScrolledWindow();
+            pokedexTreeView = new TreeView(Main.Pokedex.ListStore);
+
+            TreeViewColumn pokedexIdxColumn = new TreeViewColumn { Title = "#", Resizable = true };
+            CellRendererText pokedexIdxColumnText = new CellRendererText();
+            pokedexIdxColumn.PackStart(pokedexIdxColumnText, true);
+            pokedexIdxColumn.SetCellDataFunc(pokedexIdxColumnText, new TreeCellDataFunc(Renderers.PokedexIndexCell));
+            pokedexTreeView.AppendColumn(pokedexIdxColumn);
+
+            TreeViewColumn pokedexNameColumn = new TreeViewColumn { Title = "Name", Resizable = true };
+            CellRendererText pokedexNameColumnText = new CellRendererText();
+            pokedexNameColumn.PackStart(pokedexNameColumnText, true);
+            pokedexNameColumn.SetCellDataFunc(pokedexNameColumnText, new TreeCellDataFunc(Renderers.PokedexNameCell));
+            pokedexTreeView.AppendColumn(pokedexNameColumn);
+
+            TreeViewColumn pokedexAvailableColumn = new TreeViewColumn { Title = "Available", Resizable = true };
+            CellRendererToggle pokedexAvailableColumnBox = new CellRendererToggle() { Activatable = true };
+            pokedexAvailableColumnBox.Toggled += (object sender, ToggledArgs args) => { EventCallbacks.OnPokedexEntryToggled(this, new TreePath(args.Path)); };
+            pokedexAvailableColumnBox.Mode = CellRendererMode.Activatable;
+            pokedexAvailableColumn.PackStart(pokedexAvailableColumnBox, true);
+            pokedexAvailableColumn.SetCellDataFunc(pokedexAvailableColumnBox, new TreeCellDataFunc(Renderers.PokedexAvailableCell));
+            pokedexTreeView.AppendColumn(pokedexAvailableColumn);
+
+            pokedexScrolledWindow.Add(pokedexTreeView);
+            pokedexBox.PackStart(pokedexScrolledWindow, true, true, 0);
+
+            Toolbar pokedexToolbar = new Toolbar();
+            ToolButton applyTemplateButton = new ToolButton(Stock.Delete) { Label = "Clear" };
+            applyTemplateButton.Clicked += (object sender, EventArgs args) => { ButtonCallbacks.OnApplyPokedexTemplateClick(this, null); };
+            pokedexToolbar.Insert(applyTemplateButton, 0);
+            int idx = 1;
+            foreach (string pokedexTemplate in main.Pokedex.Templates.Keys) {
+                applyTemplateButton = new ToolButton(Stock.Apply) { Label = pokedexTemplate };
+                applyTemplateButton.Clicked += (object sender, EventArgs args) => { ButtonCallbacks.OnApplyPokedexTemplateClick(this, pokedexTemplate); };
+                pokedexToolbar.Insert(applyTemplateButton, idx++);
+            }
+            pokedexBox.PackStart(pokedexToolbar, false, false, 0);
+            mainNotebook.AppendPage(pokedexBox, new Label { Text = "Pokédex" });
 
             // Pack it all
             mainBox.PackStart(mainNotebook, true, true, 0);
