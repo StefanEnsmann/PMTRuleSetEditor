@@ -213,6 +213,7 @@ namespace PokemonTrackerEditor.View.MainWindow {
             if (window.CurrentStoryItemSelection != null) {
                 if (currentSelection is StoryItemCategory category) {
                     window.Main.RuleSet.StoryItems.RemoveStoryItemCategory(category);
+                    window.CurrentStoryItemSelection = null;
                 }
                 else {
                     StoryItem storyItem = currentSelection as StoryItem;
@@ -230,12 +231,14 @@ namespace PokemonTrackerEditor.View.MainWindow {
         }
 
         public static void OnApplyPokedexTemplateClick(MainWindow window, string template) {
-            foreach (PokedexData.PokedexEntry entry in window.Main.Pokedex.List) {
-                entry.available = false;
-            }
             if (template != null) {
                 foreach (int idx in window.Main.Pokedex.Templates[template]) {
                     window.Main.Pokedex.List[idx - 1].available = true;
+                }
+            }
+            else {
+                foreach (PokedexData.Entry entry in window.Main.Pokedex.List) {
+                    entry.available = false;
                 }
             }
             window.pokedexTreeView.QueueDraw();

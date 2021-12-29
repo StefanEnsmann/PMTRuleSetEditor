@@ -143,6 +143,7 @@ namespace PokemonTrackerEditor.Model {
             foreach(Location loc in locations) {
                 loc.SetLanguageActive(language, active);
             }
+            StoryItems.SetLanguageActive(language, active);
             if (active && !activeLanguages.Contains(language)) {
                 activeLanguages.Add(language);
             }

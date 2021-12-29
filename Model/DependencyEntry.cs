@@ -214,6 +214,16 @@ namespace PokemonTrackerEditor.Model {
         public TreeIter LocationIter { get; set; }
 
         public Location Parent { get; private set; }
+        public string LocationPath { get {
+                string ret = Id;
+                Location currentLoc = this;
+                while (currentLoc.Parent != null) {
+                    currentLoc = currentLoc.Parent;
+                    ret = currentLoc.Id + "." + ret;
+                }
+                return ret;
+            }
+        }
 
         public Location(string id, RuleSet ruleSet, Location parent = null) : base(id, ruleSet) {
             items = new List<Check>();

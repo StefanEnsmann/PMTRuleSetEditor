@@ -24,16 +24,18 @@ namespace PokemonTrackerEditor.View.MainWindow {
                     }
                 }
             }
-            window.UpdateEditorSelection(currentSelection);
+            window.UpdateLocationEditorSelection(currentSelection);
         }
         public static void OnStoryItemTreeSelectionChanged(MainWindow window, TreeSelection selection) {
+            StoryItemBase currentSelection = null;
             if (selection.GetSelected(out TreeIter iter)) {
                 object obj = window.Main.RuleSet.StoryItems.Model.GetValue(iter, 0);
                 StoryItemBase entry = (StoryItemBase)obj;
                 if (entry != null) {
-                    window.CurrentStoryItemSelection = entry;
+                    currentSelection = entry;
                 }
             }
+            window.UpdateStoryItemEditorSelection(currentSelection);
         }
 
         public static void OnLocationNameEdited(MainWindow window, TreePath path, string newText) {
@@ -54,15 +56,22 @@ namespace PokemonTrackerEditor.View.MainWindow {
             }
         }
 
-        public static void OnLocalizationValueEdited(MainWindow window, TreePath path, string newText) {
-            window.CurrentLocationSelection.Localization.Model.GetIter(out TreeIter iter, path);
-            LocalizationEntry entry = (LocalizationEntry)window.CurrentLocationSelection.Localization.Model.GetValue(iter, 0);
+        public static void OnStoryItemURLEdited(MainWindow window, string newText) {
+            if (window.CurrentStoryItemSelection is StoryItem) {
+                (window.CurrentStoryItemSelection as StoryItem).ImageURL = newText;
+            }
+        }
+
+        public static void OnLocalizationValueEdited(MainWindow window, TreePath path, string newText, bool location=true) {
+            TreeModel model = location ? window.CurrentLocationSelection.Localization.Model : window.CurrentStoryItemSelection.Localization.Model;
+            model.GetIter(out TreeIter iter, path);
+            LocalizationEntry entry = (LocalizationEntry)model.GetValue(iter, 0);
             entry.Value = newText;
         }
 
         public static void OnPokedexEntryToggled(MainWindow window, TreePath path) {
             window.Main.Pokedex.ListStore.GetIter(out TreeIter iter, path);
-            PokedexData.PokedexEntry entry = (PokedexData.PokedexEntry)window.Main.Pokedex.ListStore.GetValue(iter, 0);
+            PokedexData.Entry entry = (PokedexData.Entry)window.Main.Pokedex.ListStore.GetValue(iter, 0);
             entry.available = !entry.available;
         }
     }

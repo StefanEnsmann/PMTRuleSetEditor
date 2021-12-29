@@ -14,10 +14,15 @@ namespace PokemonTrackerEditor.Model {
         abstract public string Id { get; set; }
         public TreeIter Iter { get; set; }
 
+        public Localization Localization { get; private set; }
+        public RuleSet RuleSet { get; private set; }
+
         abstract public int DependencyCount { get; }
 
-        public StoryItemBase(string id) {
+        public StoryItemBase(string id, RuleSet ruleSet) {
             this.id = id;
+            RuleSet = ruleSet;
+            Localization = new Localization(RuleSet, RuleSet.Main.SupportedLanguages.Keys.ToList(), new List<string>());
         }
 
         abstract public void Cleanup();
@@ -41,15 +46,21 @@ namespace PokemonTrackerEditor.Model {
         public static int Compare(TreeModel model, TreeIter a, TreeIter b) {
             return Compare((StoryItemBase)model.GetValue(a, 0), (StoryItemBase)model.GetValue(b, 0));
         }
+
+        public virtual void SetLanguageActive(string language, bool active = true) {
+            Localization.SetLanguageActive(language, active);
+        }
     }
 
     class StoryItem : StoryItemBase {
 
         override public string Id { get => id; set { id = value; Category.Parent.RuleSet.ReportChange(); } }
         public StoryItemCategory Category { get; private set; }
+        private string imageURL;
+        public string ImageURL { get => imageURL; set { imageURL = value; Category.Parent.RuleSet.ReportChange(); } }
         private List<StoryItemCondition> dependencies;
         override public int DependencyCount => dependencies.Count();
-        public StoryItem(string id, StoryItemCategory category) : base(id) {
+        public StoryItem(string id, StoryItemCategory category) : base(id, category.Parent.RuleSet) {
             Category = category;
             dependencies = new List<StoryItemCondition>();
         }
@@ -93,7 +104,7 @@ namespace PokemonTrackerEditor.Model {
             }
         }
 
-        public StoryItemCategory(string id, StoryItems parent) : base(id) {
+        public StoryItemCategory(string id, StoryItems parent) : base(id, parent.RuleSet) {
             Parent = parent;
             items = new List<StoryItem>();
         }
@@ -130,6 +141,13 @@ namespace PokemonTrackerEditor.Model {
                 item.Cleanup();
             }
             items.Clear();
+        }
+
+        public override void SetLanguageActive(string language, bool active = true) {
+            base.SetLanguageActive(language, active);
+            foreach (StoryItem item in items) {
+                item.SetLanguageActive(language, active);
+            }
         }
     }
 
@@ -183,6 +201,11 @@ namespace PokemonTrackerEditor.Model {
             Model.Dispose();
             Model = null;
             RuleSet = null;
+        }
+        public virtual void SetLanguageActive(string language, bool active = true) {
+            foreach (StoryItemCategory category in categories) {
+                category.SetLanguageActive(language, active);
+            }
         }
     }
 }

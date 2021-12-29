@@ -13,7 +13,7 @@ using PokemonTrackerEditor.View.MainWindow;
 
 namespace PokemonTrackerEditor {
     partial class MainProg {
-        public readonly string BaseURL = "https://pkmntracker.ensmann.de/";
+        public static readonly string BaseURL = "https://pkmntracker.ensmann.de/";
         public RuleSet RuleSet { get; private set; }
         public string CurrentFile { get; set; }
 
@@ -99,7 +99,7 @@ namespace PokemonTrackerEditor {
         }
 
         private void Run() {
-            using (WebClient wc = new WebClient()) {
+            using (WebClient wc = new WebClient() { Encoding = Encoding.UTF8 }) {
                 string pokedexData = wc.DownloadString(BaseURL + "pkmn_data/pokedex.json");
                 Pokedex = JsonConvert.DeserializeObject<PokedexData>(pokedexData);
             }

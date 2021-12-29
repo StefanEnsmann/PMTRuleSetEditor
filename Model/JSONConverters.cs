@@ -31,7 +31,7 @@ namespace PokemonTrackerEditor.Model {
             serializer.Formatting = Formatting.None;
             writer.Formatting = Formatting.None;
             writer.WriteStartArray();
-            foreach (PokedexData.PokedexEntry entry in ruleSet.Main.Pokedex.List) {
+            foreach (PokedexData.Entry entry in ruleSet.Main.Pokedex.List) {
                 if (entry.available) {
                     writer.WriteValue(entry.nr);
                 }
@@ -78,13 +78,18 @@ namespace PokemonTrackerEditor.Model {
             writer.WriteStartObject();
             foreach (StoryItemCategory category in storyItems.Categories) {
                 writer.WritePropertyName(category.Id);
-                writer.WriteStartObject();
+                writer.WriteStartArray();
                 foreach (StoryItem item in category.Items) {
-                    writer.WritePropertyName(item.Id);
                     writer.WriteStartObject();
+                    writer.WritePropertyName("id");
+                    writer.WriteValue(item.Id);
+                    writer.WritePropertyName("url");
+                    writer.WriteValue(item.ImageURL);
+                    writer.WritePropertyName("localization");
+                    serializer.Serialize(writer, item.Localization);
                     writer.WriteEndObject();
                 }
-                writer.WriteEndObject();
+                writer.WriteEndArray();
             }
             writer.WriteEndObject();
         }
@@ -112,7 +117,7 @@ namespace PokemonTrackerEditor.Model {
                 foreach (Check check in pair.Value) {
                     writer.WriteStartObject();
                     writer.WritePropertyName("location");
-                    writer.WriteValue(check.location.Id);
+                    writer.WriteValue(check.location.LocationPath);
                     writer.WritePropertyName("id");
                     writer.WriteValue(check.Id);
                     writer.WriteEndObject();
@@ -278,8 +283,8 @@ namespace PokemonTrackerEditor.Model {
             }
         }
 
-        private PokedexData.PokedexEntry ReadListEntry(JsonReader reader) {
-            PokedexData.PokedexEntry entry = new PokedexData.PokedexEntry();
+        private PokedexData.Entry ReadListEntry(JsonReader reader) {
+            PokedexData.Entry entry = new PokedexData.Entry();
             reader.Read();
             while (reader.TokenType != JsonToken.EndObject) {
                 string entryKey = reader.Value.ToString();
@@ -302,7 +307,7 @@ namespace PokemonTrackerEditor.Model {
             return entry;
         }
 
-        private void ReadLocalization(JsonReader reader, PokedexData.PokedexEntry entry) {
+        private void ReadLocalization(JsonReader reader, PokedexData.Entry entry) {
             reader.Read(); // StartObject
             reader.Read(); // localization key
             while (reader.TokenType != JsonToken.EndObject) {

@@ -15,6 +15,8 @@ namespace PokemonTrackerEditor.View.MainWindow {
         private TreeView locationTreeView;
         private TreeView locationLocalizationTreeView;
         private TreeView storyItemsTreeView;
+        private TreeView storyItemsLocalizationTreeView;
+        private Entry storyItemsURLEntry;
         public TreeView pokedexTreeView { get; private set; }
 
         private Dictionary<string, TreeView> locationConditionsTreeViews;
@@ -33,7 +35,7 @@ namespace PokemonTrackerEditor.View.MainWindow {
             Title = windowTitle + ": " + (filename ?? "Unsaved rule set");
         }
 
-        public void UpdateEditorSelection(DependencyEntry entry) {
+        public void UpdateLocationEditorSelection(DependencyEntry entry) {
             CurrentLocationSelection = entry;
             if (entry != null) {
                 locationLocalizationTreeView.Model = entry.Localization.Model;
@@ -47,6 +49,22 @@ namespace PokemonTrackerEditor.View.MainWindow {
                 foreach (TreeView treeView in locationConditionsTreeViews.Values) {
                     treeView.Model = null;
                 }
+            }
+        }
+
+        public void UpdateStoryItemEditorSelection(StoryItemBase storyItemBase) {
+            CurrentStoryItemSelection = storyItemBase;
+            storyItemsURLEntry.IsEditable = false;
+            storyItemsURLEntry.Text = "";
+            if (storyItemBase != null) {
+                storyItemsLocalizationTreeView.Model = storyItemBase.Localization.Model;
+                if (storyItemBase is StoryItem) {
+                    storyItemsURLEntry.IsEditable = true;
+                    storyItemsURLEntry.Text = (storyItemBase as StoryItem).ImageURL;
+                }
+            }
+            else {
+                storyItemsLocalizationTreeView.Model = null;
             }
         }
 
@@ -289,6 +307,7 @@ namespace PokemonTrackerEditor.View.MainWindow {
             mainNotebook.AppendPage(editorPaned, new Label { Text = "Locations" });
 
             // Story Items
+            HPaned storyItemsPaned = new HPaned();
             VBox storyItemsBox = new VBox { Spacing = 5 };
             ScrolledWindow storyItemsScrolledWindow = new ScrolledWindow();
             storyItemsTreeView = new TreeView(main.RuleSet.StoryItems.Model);
@@ -328,8 +347,38 @@ namespace PokemonTrackerEditor.View.MainWindow {
             storyItemsToolbar.Insert(moveDownButton, 4);
 
             storyItemsBox.PackStart(storyItemsToolbar, false, false, 0);
+            storyItemsPaned.Add1(storyItemsBox);
 
-            mainNotebook.AppendPage(storyItemsBox, new Label { Text = "Story Items" });
+            VBox storyItemsEditor = new VBox { Spacing = 5 };
+            Frame storyItemsLocalizationFrame = new Frame("Localization");
+            storyItemsEditor.PackStart(storyItemsLocalizationFrame, true, true, 0);
+            storyItemsLocalizationTreeView = new TreeView();
+            TreeViewColumn storyItemsLocalizationCodeColumn = new TreeViewColumn { Title = "Language" };
+            CellRendererText storyItemsLocalizationCodeColumnText = new CellRendererText();
+            storyItemsLocalizationCodeColumn.PackStart(storyItemsLocalizationCodeColumnText, true);
+            storyItemsLocalizationCodeColumn.SetCellDataFunc(storyItemsLocalizationCodeColumnText, new TreeCellDataFunc(Renderers.LocalizationCodeCell));
+            storyItemsLocalizationTreeView.AppendColumn(storyItemsLocalizationCodeColumn);
+
+            TreeViewColumn storyItemsLocalizationValueColumn = new TreeViewColumn { Title = "Value", Resizable = true };
+            CellRendererText storyItemsLocalizationValueColumnText = new CellRendererText { Editable = true };
+            storyItemsLocalizationValueColumnText.Edited += (object sender, EditedArgs args) => { EventCallbacks.OnLocalizationValueEdited(this, new TreePath(args.Path), args.NewText, false); };
+            storyItemsLocalizationValueColumn.PackStart(storyItemsLocalizationValueColumnText, true);
+            storyItemsLocalizationValueColumn.SetCellDataFunc(storyItemsLocalizationValueColumnText, new TreeCellDataFunc(Renderers.LocalizationValueCell));
+            storyItemsLocalizationTreeView.AppendColumn(storyItemsLocalizationValueColumn);
+
+            storyItemsLocalizationFrame.Add(storyItemsLocalizationTreeView);
+
+            Frame storyItemsURLFrame = new Frame("Image URL");
+            storyItemsURLEntry = new Entry() { IsEditable = false };
+            storyItemsURLEntry.Changed += (object sender, EventArgs args) => { EventCallbacks.OnStoryItemURLEdited(this, storyItemsURLEntry.Text); };
+            storyItemsURLFrame.Add(storyItemsURLEntry);
+            storyItemsEditor.PackStart(storyItemsURLFrame, false, false, 0);
+
+            storyItemsPaned.Add2(storyItemsEditor);
+
+            storyItemsPaned.Position = (int)(windowWidth * 0.7);
+
+            mainNotebook.AppendPage(storyItemsPaned, new Label { Text = "Story Items" });
 
             // Pokedex
             VBox pokedexBox = new VBox { Spacing = 5 };

@@ -37,7 +37,7 @@ namespace PokemonTrackerEditor.View.MainWindow {
 
         public static void ConditionLocation(TreeViewColumn column, CellRenderer cell, TreeModel model, TreeIter iter) {
             Check cond = (Check)model.GetValue(iter, 0);
-            (cell as CellRendererText).Text = cond.location.Id;
+            (cell as CellRendererText).Text = cond.location.LocationPath;
         }
 
         public static void StoryItemName(TreeViewColumn column, CellRenderer cell, TreeModel model, TreeIter iter) {
@@ -81,17 +81,17 @@ namespace PokemonTrackerEditor.View.MainWindow {
         }
 
         public static void PokedexIndexCell(TreeViewColumn column, CellRenderer cell, TreeModel model, TreeIter iter) {
-            PokedexData.PokedexEntry entry = (PokedexData.PokedexEntry)model.GetValue(iter, 0);
+            PokedexData.Entry entry = (PokedexData.Entry)model.GetValue(iter, 0);
             (cell as CellRendererText).Text = entry.nr.ToString("D4");
         }
 
         public static void PokedexNameCell(TreeViewColumn column, CellRenderer cell, TreeModel model, TreeIter iter) {
-            PokedexData.PokedexEntry entry = (PokedexData.PokedexEntry)model.GetValue(iter, 0);
+            PokedexData.Entry entry = (PokedexData.Entry)model.GetValue(iter, 0);
             (cell as CellRendererText).Text = entry.Localization.TryGetValue("en", out string name) ? name : "MISSING";
         }
 
         public static void PokedexAvailableCell(TreeViewColumn column, CellRenderer cell, TreeModel model, TreeIter iter) {
-            PokedexData.PokedexEntry entry = (PokedexData.PokedexEntry)model.GetValue(iter, 0);
+            PokedexData.Entry entry = (PokedexData.Entry)model.GetValue(iter, 0);
             (cell as CellRendererToggle).Active = entry.available;
         }
     }

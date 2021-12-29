@@ -14,30 +14,30 @@ namespace PokemonTrackerEditor.Model {
 
         public Dictionary<string, List<int>> Templates { get; private set; }
 
-        public List<PokedexEntry> List { get; private set; }
+        public List<Entry> List { get; private set; }
 
         public TreeStore ListStore { get; private set; }
 
         public PokedexData() {
             Overrides = new Dictionary<string, Dictionary<string, Dictionary<string, string>>>();
             Templates = new Dictionary<string, List<int>>();
-            List = new List<PokedexEntry>();
-            ListStore = new TreeStore(typeof(PokedexEntry));
+            List = new List<Entry>();
+            ListStore = new TreeStore(typeof(Entry));
         }
 
-        public void AddPokemon(PokedexEntry entry) {
+        public void AddPokemon(Entry entry) {
             List.Add(entry);
             ListStore.AppendValues(entry);
         }
 
-        public class PokedexEntry {
+        public class Entry {
             public bool available;
             public int nr;
             public string typeA;
             public string typeB;
             public Dictionary<string, string> Localization { get; private set; }
 
-            public PokedexEntry() {
+            public Entry() {
                 available = false;
                 nr = -1;
                 typeA = null;
