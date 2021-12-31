@@ -13,7 +13,9 @@ namespace PokemonTrackerEditor.Model {
         }
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer) {
-            throw new NotImplementedException();
+            RuleSet ruleSet = new RuleSet();
+
+            return ruleSet;
         }
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer) {
             RuleSet ruleSet = (RuleSet)value;
@@ -31,7 +33,7 @@ namespace PokemonTrackerEditor.Model {
             serializer.Formatting = Formatting.None;
             writer.Formatting = Formatting.None;
             writer.WriteStartArray();
-            foreach (PokedexData.Entry entry in ruleSet.Main.Pokedex.List) {
+            foreach (PokedexData.Entry entry in MainProg.Pokedex.List) {
                 if (entry.available) {
                     writer.WriteValue(entry.nr);
                 }
@@ -49,16 +51,14 @@ namespace PokemonTrackerEditor.Model {
 
             // maps
 
-            writer.WritePropertyName("story_items");
             serializer.Serialize(writer, ruleSet.StoryItems);
 
             writer.WritePropertyName("locations");
-            writer.WriteStartObject();
+            writer.WriteStartArray();
             foreach (Location loc in ruleSet.Locations) {
-                writer.WritePropertyName(loc.Id);
                 serializer.Serialize(writer, loc);
             }
-            writer.WriteEndObject();
+            writer.WriteEndArray();
 
             writer.WriteEndObject();
         }
@@ -75,12 +75,18 @@ namespace PokemonTrackerEditor.Model {
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer) {
             StoryItems storyItems = (StoryItems)value;
-            writer.WriteStartObject();
+            writer.WritePropertyName("story_items");
+            writer.WriteStartArray();
             foreach (StoryItemCategory category in storyItems.Categories) {
-                writer.WritePropertyName(category.Id);
+                writer.WriteStartObject();
+                writer.WritePropertyName("id");
+                writer.WriteValue(category.Id);
+                writer.WritePropertyName("items");
                 writer.WriteStartArray();
                 foreach (StoryItem item in category.Items) {
                     writer.WriteStartObject();
+                    Formatting writerBackup = writer.Formatting;
+                    writer.Formatting = Formatting.None;
                     writer.WritePropertyName("id");
                     writer.WriteValue(item.Id);
                     writer.WritePropertyName("url");
@@ -88,10 +94,12 @@ namespace PokemonTrackerEditor.Model {
                     writer.WritePropertyName("localization");
                     serializer.Serialize(writer, item.Localization);
                     writer.WriteEndObject();
+                    writer.Formatting = writerBackup;
                 }
                 writer.WriteEndArray();
+                writer.WriteEndObject();
             }
-            writer.WriteEndObject();
+            writer.WriteEndArray();
         }
     }
 
@@ -106,27 +114,42 @@ namespace PokemonTrackerEditor.Model {
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer) {
             DependencyEntry entry = (DependencyEntry)value;
+            writer.WritePropertyName("id");
+            writer.WriteValue(entry.Id);
             writer.WritePropertyName("localization");
             serializer.Serialize(writer, entry.Localization);
-            writer.WritePropertyName("conditions");
             Dictionary<string, List<Check>> pairs = new Dictionary<string, List<Check>> { { "items", entry.ItemsConditions }, { "pokemon", entry.PokemonConditions }, { "trainers", entry.TrainersConditions }, { "trades", entry.TradesConditions} };
-            writer.WriteStartObject();
+            bool hasOpened = false;
             foreach (KeyValuePair<string, List<Check>> pair in pairs) {
-                writer.WritePropertyName(pair.Key);
-                writer.WriteStartArray();
-                foreach (Check check in pair.Value) {
-                    writer.WriteStartObject();
-                    writer.WritePropertyName("location");
-                    writer.WriteValue(check.location.LocationPath);
-                    writer.WritePropertyName("id");
-                    writer.WriteValue(check.Id);
-                    writer.WriteEndObject();
+                if (pair.Value.Count > 0) {
+                    if (!hasOpened) {
+                        writer.WritePropertyName("conditions");
+                        writer.WriteStartObject();
+                        hasOpened = true;
+                    }
+                    writer.WritePropertyName(pair.Key);
+                    writer.WriteStartArray();
+                    foreach (Check check in pair.Value) {
+                        writer.WriteStartObject();
+                        Formatting writerBackup = writer.Formatting;
+                        writer.Formatting = Formatting.None;
+                        writer.WritePropertyName("location");
+                        writer.WriteValue(check.Parent.LocationPath);
+                        writer.WritePropertyName("id");
+                        writer.WriteValue(check.Id);
+                        writer.WriteEndObject();
+                        writer.Formatting = writerBackup;
+                    }
+                    writer.WriteEndArray();
                 }
-                writer.WriteEndArray();
             }
-            writer.WritePropertyName("story_items");
-            serializer.Serialize(writer, entry.StoryItemsConditions);
-            writer.WriteEndObject();
+            if (entry.StoryItemsCondCount > 0) {
+                writer.WritePropertyName("story_items");
+                serializer.Serialize(writer, entry.StoryItemsConditions);
+            }
+            if (hasOpened) {
+                writer.WriteEndObject();
+            }
         }
     }
 
@@ -146,22 +169,24 @@ namespace PokemonTrackerEditor.Model {
 
             Dictionary<string, List<Check>> pairs = new Dictionary<string, List<Check>> { { "items", loc.Items }, { "pokemon", loc.Pokemon }, { "trainers", loc.Trainers }, { "trades", loc.Trades } };
             foreach (KeyValuePair<string, List<Check>> pair in pairs) {
-                writer.WritePropertyName(pair.Key);
-                writer.WriteStartObject();
-                foreach (Check check in pair.Value) {
-                    writer.WritePropertyName(check.Id);
-                    serializer.Serialize(writer, check);
+                if (pair.Value.Count > 0) {
+                    writer.WritePropertyName(pair.Key);
+                    writer.WriteStartArray();
+                    foreach (Check check in pair.Value) {
+                        serializer.Serialize(writer, check);
+                    }
+                    writer.WriteEndArray();
                 }
-                writer.WriteEndObject();
             }
 
-            writer.WritePropertyName("locations");
-            writer.WriteStartObject();
-            foreach (Location nestedLoc in loc.Locations) {
-                writer.WritePropertyName(nestedLoc.Id);
-                serializer.Serialize(writer, nestedLoc);
+            if (loc.LocationCount > 0) {
+                writer.WritePropertyName("locations");
+                writer.WriteStartArray();
+                foreach (Location nestedLoc in loc.Locations) {
+                    serializer.Serialize(writer, nestedLoc);
+                }
+                writer.WriteEndArray();
             }
-            writer.WriteEndObject();
 
             writer.WriteEndObject();
         }
@@ -215,11 +240,14 @@ namespace PokemonTrackerEditor.Model {
             }
             else if (condition is StoryItemCondition nestedCondition) {
                 writer.WriteStartObject();
+                Formatting writerBackup = writer.Formatting;
+                writer.Formatting = Formatting.None;
                 writer.WritePropertyName("category");
                 writer.WriteValue(nestedCondition.StoryItem.Category.Id);
                 writer.WritePropertyName("id");
                 writer.WriteValue(nestedCondition.StoryItem.Id);
                 writer.WriteEndObject();
+                writer.Formatting = writerBackup;
             }
         }
     }
@@ -236,11 +264,14 @@ namespace PokemonTrackerEditor.Model {
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer) {
             Localization loc = (Localization)value;
             writer.WriteStartObject();
+            Formatting writerBackup = writer.Formatting;
+            writer.Formatting = Formatting.None;
             foreach (KeyValuePair<string, string> pair in loc.Translations) {
                 writer.WritePropertyName(pair.Key);
                 writer.WriteValue(pair.Value);
             }
             writer.WriteEndObject();
+            writer.Formatting = writerBackup;
         }
     }
 

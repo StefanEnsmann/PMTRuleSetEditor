@@ -79,7 +79,7 @@ namespace PokemonTrackerEditor.Model {
         }
     }
 
-    abstract class DependencyEntry : DependencyEntryBase {
+    abstract class DependencyEntry : DependencyEntryBase, IMovable {
         private List<Check> itemsConditions;
         private List<Check> pokemonConditions;
         private List<Check> tradesConditions;
@@ -106,7 +106,9 @@ namespace PokemonTrackerEditor.Model {
         public int TrainerCondCount => trainersConditions.Count;
         public int StoryItemsCondCount => StoryItemsConditions.Count;
 
-        public DependencyEntry(string id, RuleSet ruleSet) : base(id, ruleSet) {
+        public Location Parent { get; set; }
+
+        public DependencyEntry(string id, RuleSet ruleSet, Location parent = null) : base(id, ruleSet) {
             itemsConditions = new List<Check>();
             pokemonConditions = new List<Check>();
             tradesConditions = new List<Check>();
@@ -120,7 +122,8 @@ namespace PokemonTrackerEditor.Model {
             TradesModel = new TreeModelSort(tradesTreeStore);
             trainersTreeStore = new TreeStore(typeof(Check));
             TrainersModel = new TreeModelSort(trainersTreeStore);
-            Localization = new Localization(RuleSet, RuleSet.Main.SupportedLanguages.Keys.ToList(), new List<string>());
+            Localization = new Localization(RuleSet, MainProg.SupportedLanguages.Keys.ToList(), new List<string>());
+            Parent = parent;
         }
 
         virtual public void Cleanup() {
@@ -188,7 +191,7 @@ namespace PokemonTrackerEditor.Model {
     }
 
     [JsonConverter(typeof(LocationConverter))]
-    class Location : DependencyEntry {
+    class Location : DependencyEntry, IMovableItems<DependencyEntry> {
         private List<Check> items;
         public List<Check> Items => new List<Check>(items);
         private List<Check> pokemon;
@@ -212,8 +215,6 @@ namespace PokemonTrackerEditor.Model {
         public TreeIter TradeIter { get; set; }
         public TreeIter TrainerIter { get; set; }
         public TreeIter LocationIter { get; set; }
-
-        public Location Parent { get; private set; }
         public string LocationPath { get {
                 string ret = Id;
                 Location currentLoc = this;
@@ -225,13 +226,12 @@ namespace PokemonTrackerEditor.Model {
             }
         }
 
-        public Location(string id, RuleSet ruleSet, Location parent = null) : base(id, ruleSet) {
+        public Location(string id, RuleSet ruleSet, Location parent = null) : base(id, ruleSet, parent) {
             items = new List<Check>();
             pokemon = new List<Check>();
             trades = new List<Check>();
             trainers = new List<Check>();
             locations = new List<Location>();
-            Parent = parent;
         }
 
         private int SumLocationChecks() {
@@ -308,7 +308,7 @@ namespace PokemonTrackerEditor.Model {
         public bool AddCheck(Check check) {
             List<Check> list = GetListForCheck(check);
             if (!list.Contains(check)) {
-                check.location = this;
+                check.Parent = this;
                 list.Add(check);
                 RuleSet.ReportChange();
                 return true;
@@ -321,6 +321,34 @@ namespace PokemonTrackerEditor.Model {
             check.Cleanup();
             while (list.Remove(check)) ;
             RuleSet.ReportChange();
+        }
+
+        public bool MoveUp(DependencyEntry movable) {
+            return MoveInternal(movable, true);
+        }
+
+        public bool MoveDown(DependencyEntry movable) {
+            return MoveInternal(movable, false);
+        }
+
+        private bool MoveInternal(DependencyEntry movable, bool up) {
+            if (movable is Check check) {
+                switch (check.Type) {
+                    case Check.CheckType.ITEM:
+                        return InterfaceHelpers.SwapItems(items, check, up);
+                    case Check.CheckType.POKEMON:
+                        return InterfaceHelpers.SwapItems(pokemon, check, up);
+                    case Check.CheckType.TRADE:
+                        return InterfaceHelpers.SwapItems(trades, check, up);
+                    case Check.CheckType.TRAINER:
+                        return InterfaceHelpers.SwapItems(trainers, check, up);
+                    default:
+                        return false;
+                }
+            }
+            else {
+                return movable is Location location && InterfaceHelpers.SwapItems(locations, location, up);
+            }
         }
 
         public bool AddLocation(Location location) {
@@ -345,12 +373,11 @@ namespace PokemonTrackerEditor.Model {
             ITEM, POKEMON, TRADE, TRAINER
         }
 
-        public Location location;
         public CheckType Type { get; private set; }
         private Dictionary<DependencyEntry, TreeIter> dependingEntries;
         public int DependingEntryCount => dependingEntries.Count;
 
-        public Check(string id, RuleSet ruleSet, CheckType type) : base(id, ruleSet) {
+        public Check(string id, RuleSet ruleSet, CheckType type, Location parent = null) : base(id, ruleSet, parent) {
             Type = type;
             dependingEntries = new Dictionary<DependencyEntry, TreeIter>();
         }

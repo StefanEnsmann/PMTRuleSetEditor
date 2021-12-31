@@ -11,7 +11,7 @@ using Gtk;
 namespace PokemonTrackerEditor.View.MainWindow {
     class ButtonCallbacks {
         private static string GetNewFile(MainWindow window) {
-            string selectedFile = window.Main.CurrentFile;
+            string selectedFile = MainProg.CurrentFile;
             if (selectedFile == null) {
                 selectedFile = CustomDialog.SelectRuleSetFile(window, "Select file path", true);
             }
@@ -19,7 +19,7 @@ namespace PokemonTrackerEditor.View.MainWindow {
         }
 
         private static bool AskForFileSave(MainWindow window) {
-            RuleSet ruleSet = window.Main.RuleSet;
+            RuleSet ruleSet = MainProg.RuleSet;
             bool loadFile = true;
             if (ruleSet != null && ruleSet.HasChanged) {
                 CustomDialog.ButtonType response = CustomDialog.YNCDialog(window, "There are changes to this file. Do you want to save?", "Save changes?");
@@ -33,32 +33,32 @@ namespace PokemonTrackerEditor.View.MainWindow {
             return loadFile;
         }
         public static void OnNewFileClick(MainWindow window) {
-            RuleSet ruleSet = window.Main.RuleSet;
+            RuleSet ruleSet = MainProg.RuleSet;
             if (AskForFileSave(window)) {
-                window.SetRuleSet(window.Main.NewRuleSet(), null);
+                window.SetRuleSet(MainProg.NewRuleSet(), null);
             }
         }
 
         public static void OnSelectFileClick(MainWindow window) {
-            RuleSet ruleSet = window.Main.RuleSet;
+            RuleSet ruleSet = MainProg.RuleSet;
             if (AskForFileSave(window)) {
                 if (ruleSet != null) {
                     ruleSet.Cleanup();
                 }
                 string selectedFile = CustomDialog.SelectRuleSetFile(window, "Select rule set file", false);
                 if (selectedFile != null) {
-                    window.SetRuleSet(window.Main.LoadRuleSet(selectedFile), selectedFile);
+                    window.SetRuleSet(MainProg.LoadRuleSet(selectedFile), selectedFile);
                 }
             }
         }
 
         public static void OnSaveFileClick(MainWindow window) {
-            RuleSet ruleSet = window.Main.RuleSet;
+            RuleSet ruleSet = MainProg.RuleSet;
             if (ruleSet != null) {
                 string saveFile = GetNewFile(window);
                 if (saveFile != null) {
                     ruleSet.SaveToFile(saveFile);
-                    window.Main.CurrentFile = saveFile;
+                    MainProg.CurrentFile = saveFile;
                 }
                 else {
                     CustomDialog.MessageDialog(window, "No file selected! Rule set was not saved.", "Warning");
@@ -66,45 +66,56 @@ namespace PokemonTrackerEditor.View.MainWindow {
             }
         }
 
-        public static void OnAddLocationClick(MainWindow window) {
+        public static void OnAddLocationClick(MainWindow window, bool root=true) {
             DependencyEntry currentSelection = window.CurrentLocationSelection;
-            Location loc = currentSelection == null ? null : currentSelection is Location location ? location : ((Check)currentSelection).location;
-            RuleSet ruleSet = window.Main.RuleSet;
+            Location loc = root ? null : currentSelection == null ? null : currentSelection is Location location ? location : ((Check)currentSelection).Parent;
+            RuleSet ruleSet = MainProg.RuleSet;
             string template = "new_location_";
             int value = 0;
-            while (!ruleSet.AddLocation(template + value, loc)) {
+            Location newLoc;
+            while ((newLoc = ruleSet.AddLocation(template + value, loc)) == null) {
                 ++value;
             }
+            ShowAndSelect(window.LocationTreeView, newLoc.Iter);
+        }
+
+        private static void ShowAndSelect(TreeView view, TreeIter iter) {
+            TreePath path = view.Model.GetPath(iter);
+            path.Up();
+            view.ExpandToPath(path);
+            view.Selection.SelectIter(iter);
         }
 
         public static void OnAddCheckClick(MainWindow window, Check.CheckType type) {
-            RuleSet ruleSet = window.Main.RuleSet;
+            RuleSet ruleSet = MainProg.RuleSet;
             DependencyEntry currentSelection = window.CurrentLocationSelection;
             if (window.CurrentLocationSelection != null) {
-                Location loc = currentSelection is Location location ? location : ((Check)currentSelection).location;
+                Location loc = currentSelection is Location location ? location : ((Check)currentSelection).Parent;
                 string template = "new_" + type.ToString().ToLower() + "_";
                 int value = 0;
-                while (!ruleSet.AddCheck(loc, template + value, type)) {
+                Check check;
+                while ((check = ruleSet.AddCheck(loc, template + value, type)) == null) {
                     ++value;
                 }
+                ShowAndSelect(window.LocationTreeView, check.Iter);
             }
         }
 
         public static void OnRemoveLocationOrCheckClick(MainWindow window) {
-            RuleSet ruleSet = window.Main.RuleSet;
+            RuleSet ruleSet = MainProg.RuleSet;
             if (window.CurrentLocationSelection != null) {
                 if (window.CurrentLocationSelection is Location loc) {
                     ruleSet.RemoveLocation(loc);
                 }
                 else if (window.CurrentLocationSelection is Check check) {
-                    ruleSet.RemoveCheck(check.location, check);
+                    ruleSet.RemoveCheck(check.Parent, check);
                 }
             }
         }
 
         public static void OnAddConditionClick(MainWindow window, Check.CheckType type) {
             if (window.CurrentLocationSelection != null) {
-                Check selectedCheck = CustomDialog.SelectCheck(window, "Select check", window.Main.RuleSet.Model, type);
+                Check selectedCheck = CustomDialog.SelectCheck(window, "Select check", MainProg.RuleSet.Model, type);
                 if (selectedCheck != null) {
                     window.CurrentLocationSelection.AddCondition(selectedCheck);
                 }
@@ -148,7 +159,7 @@ namespace PokemonTrackerEditor.View.MainWindow {
 
         public static void OnAddStoryItemConditionClick(MainWindow window, TreeView treeView) {
             if (window.CurrentLocationSelection != null) {
-                StoryItem storyItem = CustomDialog.SelectStoryItem(window, "Select story item", window.Main.RuleSet.StoryItems.Model);
+                StoryItem storyItem = CustomDialog.SelectStoryItem(window, "Select story item", MainProg.RuleSet.StoryItems.Model);
                 if (storyItem != null) {
                     StoryItemConditionCollection collection = GetSelectedStoryItemConditionContainer(window, treeView);
                     Console.WriteLine(collection.Id);
@@ -188,12 +199,14 @@ namespace PokemonTrackerEditor.View.MainWindow {
         }
 
         public static void OnAddStoryItemCategoryClick(MainWindow window) {
-            StoryItems storyItems = window.Main.RuleSet.StoryItems;
+            StoryItems storyItems = MainProg.RuleSet.StoryItems;
             string template = "new_story_item_category_";
             int value = 0;
-            while (!storyItems.AddStoryItemCategory(template + value)) {
+            StoryItemCategory newCat;
+            while ((newCat = storyItems.AddStoryItemCategory(template + value)) == null) {
                 ++value;
             }
+            ShowAndSelect(window.StoryItemsTreeView, newCat.Iter);
         }
 
         public static void OnAddStoryItemClick(MainWindow window) {
@@ -202,9 +215,11 @@ namespace PokemonTrackerEditor.View.MainWindow {
                 StoryItemCategory cat = currentSelection is StoryItemCategory category ? category : ((StoryItem)currentSelection).Category;
                 string template = "new_story_item_";
                 int value = 0;
-                while (!cat.AddStoryItem(template + value)) {
+                StoryItem newItem;
+                while ((newItem = cat.AddStoryItem(template + value)) == null) {
                     ++value;
                 }
+                ShowAndSelect(window.StoryItemsTreeView, newItem.Iter);
             }
         }
 
@@ -212,7 +227,7 @@ namespace PokemonTrackerEditor.View.MainWindow {
             StoryItemBase currentSelection = window.CurrentStoryItemSelection;
             if (window.CurrentStoryItemSelection != null) {
                 if (currentSelection is StoryItemCategory category) {
-                    window.Main.RuleSet.StoryItems.RemoveStoryItemCategory(category);
+                    MainProg.RuleSet.StoryItems.RemoveStoryItemCategory(category);
                     window.CurrentStoryItemSelection = null;
                 }
                 else {
@@ -223,21 +238,62 @@ namespace PokemonTrackerEditor.View.MainWindow {
         }
 
         public static void OnMoveUpStoryItemClick(MainWindow window) {
-
+            if (window.CurrentStoryItemSelection is StoryItem storyItem) {
+                MoveSelection(MainProg.RuleSet.StoryItems.Model, (StoryItem)window.CurrentStoryItemSelection, true, storyItem.Category);
+            }
+            else if (window.CurrentStoryItemSelection is StoryItemCategory) {
+                MoveSelection(MainProg.RuleSet.StoryItems.Model, (StoryItemCategory)window.CurrentStoryItemSelection, true, MainProg.RuleSet.StoryItems);
+            }
         }
 
         public static void OnMoveDownStoryItemClick(MainWindow window) {
+            if (window.CurrentStoryItemSelection is StoryItem storyItem) {
+                MoveSelection(MainProg.RuleSet.StoryItems.Model, (StoryItem)window.CurrentStoryItemSelection, false, storyItem.Category);
+            }
+            else if (window.CurrentStoryItemSelection is StoryItemCategory) {
+                MoveSelection(MainProg.RuleSet.StoryItems.Model, (StoryItemCategory)window.CurrentStoryItemSelection, false, MainProg.RuleSet.StoryItems);
+            }
+        }
 
+        public static void OnMoveUpLocationClick(MainWindow window) {
+            IMovableItems<DependencyEntry> parent = window.CurrentLocationSelection.Parent ?? (IMovableItems<DependencyEntry>)MainProg.RuleSet;
+            MoveSelection(MainProg.RuleSet.Model, window.CurrentLocationSelection, true, parent);
+        }
+
+        public static void OnMoveDownLocationClick(MainWindow window) {
+            IMovableItems<DependencyEntry> parent = window.CurrentLocationSelection.Parent ?? (IMovableItems<DependencyEntry>)MainProg.RuleSet;
+            MoveSelection(MainProg.RuleSet.Model, window.CurrentLocationSelection, false, parent);
+        }
+
+        private static void MoveSelection<T>(TreeStore model, T movable, bool up, IMovableItems<T> parent) where T : IMovable {
+            TreePath path = model.GetPath(movable.Iter);
+            if (up) {
+                path.Prev();
+            }
+            else {
+                path.Next();
+            }
+            model.GetIter(out TreeIter replace, path);
+            if (model.IterIsValid(replace)) {
+                if (up) {
+                    model.MoveBefore(movable.Iter, replace);
+                    parent.MoveUp(movable);
+                }
+                else {
+                    model.MoveAfter(movable.Iter, replace);
+                    parent.MoveDown(movable);
+                }
+            }
         }
 
         public static void OnApplyPokedexTemplateClick(MainWindow window, string template) {
             if (template != null) {
-                foreach (int idx in window.Main.Pokedex.Templates[template]) {
-                    window.Main.Pokedex.List[idx - 1].available = true;
+                foreach (int idx in MainProg.Pokedex.Templates[template]) {
+                    MainProg.Pokedex.List[idx - 1].available = true;
                 }
             }
             else {
-                foreach (PokedexData.Entry entry in window.Main.Pokedex.List) {
+                foreach (PokedexData.Entry entry in MainProg.Pokedex.List) {
                     entry.available = false;
                 }
             }

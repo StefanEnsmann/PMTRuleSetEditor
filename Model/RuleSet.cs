@@ -10,26 +10,21 @@ using Gtk;
 
 namespace PokemonTrackerEditor.Model {
     [JsonConverter(typeof(RuleSetConverter))]
-    class RuleSet {
-        public string Name { get; private set; }
-        public string Game { get; private set; }
+    class RuleSet : IMovableItems<DependencyEntry> {
+        public string Name { get; set; }
+        public string Game { get; set; }
 
         private TreeStore treeStore;
-        public TreeModelSort Model { get; private set; }
+        public TreeStore Model => treeStore;
         private List<Location> locations;
         public List<Location> Locations => new List<Location>(locations);
         public StoryItems StoryItems { get; private set; }
         private List<string> activeLanguages;
         public List<string> ActiveLanguages => new List<string>(activeLanguages);
         public bool HasChanged { get; private set; }
-        public MainProg Main { get; private set; }
 
-        public RuleSet(MainProg main) {
-            Main = main;
+        public RuleSet() {
             treeStore = new TreeStore(typeof(DependencyEntryBase));
-            Model = new TreeModelSort(treeStore);
-            Model.SetSortFunc(0, DependencyEntryBase.Compare);
-            Model.SetSortColumnId(0, SortType.Ascending);
             locations = new List<Location>();
             StoryItems = new StoryItems(this);
             activeLanguages = new List<string>();
@@ -46,14 +41,6 @@ namespace PokemonTrackerEditor.Model {
             treeStore.Clear();
         }
 
-        public void SetName(string name) {
-            Name = name;
-        }
-
-        public void SetGame(string game) {
-            Game = game;
-        }
-
         public bool LocationNameAvailable(string location) {
             bool available = true;
             Location loc = new Location(location, this);
@@ -64,7 +51,7 @@ namespace PokemonTrackerEditor.Model {
             return available;
         }
 
-        public bool AddLocation(string location, Location parent = null) {
+        public Location AddLocation(string location, Location parent = null) {
             Location loc = new Location(location, this, parent);
             if (!(parent != null ? !parent.LocationNameAvailable(location) : locations.Contains(loc))) {
                 if (parent == null) {
@@ -84,10 +71,10 @@ namespace PokemonTrackerEditor.Model {
                     loc.SetLanguageActive(activeLanguage);
                 }
                 HasChanged = true;
-                return true;
+                return loc;
             }
             loc.Cleanup();
-            return false;
+            return null;
         }
 
         public void RemoveLocation(Location location) {
@@ -103,7 +90,17 @@ namespace PokemonTrackerEditor.Model {
             HasChanged = true;
         }
 
-        public bool AddCheck(Location location, string check, Check.CheckType type) {
+        public bool MoveUp(DependencyEntry location) {
+            Console.WriteLine("RuleSet: Move up " + location.Id);
+            return InterfaceHelpers.SwapItems(locations, (Location)location, true);
+        }
+
+        public bool MoveDown(DependencyEntry location) {
+            Console.WriteLine("RuleSet: Move down " + location.Id);
+            return InterfaceHelpers.SwapItems(locations, (Location)location, false);
+        }
+
+        public Check AddCheck(Location location, string check, Check.CheckType type) {
             Check chk = new Check(check, this, type);
             TreeIter parentIter;
             switch (type) {
@@ -116,19 +113,19 @@ namespace PokemonTrackerEditor.Model {
                 case Check.CheckType.TRAINER:
                     parentIter = location.TrainerIter; break;
                 default:
-                    return false;
+                    return null;
             }
             if (location.AddCheck(chk)) {
                 chk.Iter = treeStore.AppendValues(parentIter, chk);
-                foreach(string language in activeLanguages) {
+                foreach (string language in activeLanguages) {
                     chk.SetLanguageActive(language);
                 }
                 HasChanged = true;
-                return true;
+                return chk;
             }
             else {
                 chk.Cleanup();
-                return false;
+                return null;
             }
         }
 
@@ -139,8 +136,8 @@ namespace PokemonTrackerEditor.Model {
             HasChanged = true;
         }
 
-        public void SetLanguageActive(string language, bool active=true) {
-            foreach(Location loc in locations) {
+        public void SetLanguageActive(string language, bool active = true) {
+            foreach (Location loc in locations) {
                 loc.SetLanguageActive(language, active);
             }
             StoryItems.SetLanguageActive(language, active);
@@ -157,9 +154,11 @@ namespace PokemonTrackerEditor.Model {
         }
 
         public void SaveToFile(string filepath) {
-            locations.Sort();
+            Console.WriteLine("RuleSet save");
             activeLanguages.Sort();
-            JsonSerializer serializer = new JsonSerializer();
+            JsonSerializer serializer = JsonSerializer.Create(new JsonSerializerSettings() {
+                ReferenceLoopHandling = ReferenceLoopHandling.Serialize
+            });
             using (StreamWriter file = File.CreateText(filepath)) {
                 serializer.Formatting = Formatting.Indented;
                 serializer.Serialize(file, this);
@@ -167,8 +166,13 @@ namespace PokemonTrackerEditor.Model {
             HasChanged = false;
         }
 
-        public static RuleSet FromFile(string filepath, MainProg main) {
-            return new RuleSet(main);
+        public static RuleSet FromFile(string filepath) {
+            JsonSerializer serializer = new JsonSerializer();
+            RuleSet ret;
+            using (StreamReader reader = new StreamReader(filepath)) {
+                ret = (RuleSet)serializer.Deserialize(reader, typeof(RuleSet));
+            }
+            return ret;
         }
     }
 }

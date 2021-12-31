@@ -9,7 +9,7 @@ using Gtk;
 using Newtonsoft.Json;
 
 namespace PokemonTrackerEditor.Model {
-    abstract class StoryItemBase : IEquatable<StoryItemBase> {
+    abstract class StoryItemBase : IEquatable<StoryItemBase>, IMovable {
         protected string id;
         abstract public string Id { get; set; }
         public TreeIter Iter { get; set; }
@@ -22,7 +22,7 @@ namespace PokemonTrackerEditor.Model {
         public StoryItemBase(string id, RuleSet ruleSet) {
             this.id = id;
             RuleSet = ruleSet;
-            Localization = new Localization(RuleSet, RuleSet.Main.SupportedLanguages.Keys.ToList(), new List<string>());
+            Localization = new Localization(RuleSet, MainProg.SupportedLanguages.Keys.ToList(), new List<string>());
         }
 
         abstract public void Cleanup();
@@ -87,7 +87,7 @@ namespace PokemonTrackerEditor.Model {
         }
     }
 
-    class StoryItemCategory : StoryItemBase {
+    class StoryItemCategory : StoryItemBase, IMovableItems<StoryItem> {
         override public string Id { get => id; set { id = value; Parent.RuleSet.ReportChange(); } }
 
         public StoryItems Parent { get; private set; }
@@ -117,15 +117,15 @@ namespace PokemonTrackerEditor.Model {
             return true;
         }
 
-        public bool AddStoryItem(string storyItem) {
+        public StoryItem AddStoryItem(string storyItem) {
             StoryItem item = new StoryItem(storyItem, this);
             if (!items.Contains(item)) {
                 items.Add(item);
                 item.Iter = Parent.Model.AppendValues(Iter, item);
                 Parent.RuleSet.ReportChange();
-                return true;
+                return item;
             }
-            return false;
+            return null;
         }
 
         public void RemoveStoryItem(StoryItem item) {
@@ -134,6 +134,14 @@ namespace PokemonTrackerEditor.Model {
             items.Remove(item);
             item.Cleanup();
             Parent.RuleSet.ReportChange();
+        }
+
+        public bool MoveUp(StoryItem item) {
+            return InterfaceHelpers.SwapItems(items, item, true);
+        }
+
+        public bool MoveDown(StoryItem item) {
+            return InterfaceHelpers.SwapItems(items, item, false);
         }
 
         override public void Cleanup() {
@@ -152,7 +160,7 @@ namespace PokemonTrackerEditor.Model {
     }
 
     [JsonConverter(typeof(StoryItemConverter))]
-    class StoryItems {
+    class StoryItems : IMovableItems<StoryItemCategory> {
         private List<StoryItemCategory> categories;
         public List<StoryItemCategory> Categories => new List<StoryItemCategory>(categories);
         public TreeStore Model { get; private set; }
@@ -172,15 +180,15 @@ namespace PokemonTrackerEditor.Model {
             return true;
         }
 
-        public bool AddStoryItemCategory(string category) {
+        public StoryItemCategory AddStoryItemCategory(string category) {
             StoryItemCategory newCat = new StoryItemCategory(category, this);
             if (!categories.Contains(newCat)) {
                 newCat.Iter = Model.AppendValues(newCat);
                 categories.Add(newCat);
                 RuleSet.ReportChange();
-                return true;
+                return newCat;
             }
-            return false;
+            return null;
         }
 
         public void RemoveStoryItemCategory(StoryItemCategory category) {
@@ -189,6 +197,14 @@ namespace PokemonTrackerEditor.Model {
             categories.Remove(category);
             category.Cleanup();
             RuleSet.ReportChange();
+        }
+
+        public bool MoveUp(StoryItemCategory category) {
+            return InterfaceHelpers.SwapItems(categories, category, true);
+        }
+
+        public bool MoveDown(StoryItemCategory category) {
+            return InterfaceHelpers.SwapItems(categories, category, false);
         }
 
         public void Cleanup() {
