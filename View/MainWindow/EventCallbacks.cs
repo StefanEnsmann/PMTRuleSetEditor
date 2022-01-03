@@ -51,9 +51,8 @@ namespace PokemonTrackerEditor.View.MainWindow {
         public static void OnLocationNameEdited(MainWindow window, TreePath path, string newText) {
             MainProg.RuleSet.Model.GetIter(out TreeIter iter, path);
             DependencyEntryBase data = (DependencyEntryBase)MainProg.RuleSet.Model.GetValue(iter, 0);
-            if (data is Location location && (location.Parent == null && MainProg.RuleSet.LocationNameAvailable(newText)
-                || location.Parent != null && location.Parent.LocationNameAvailable(newText))
-                || (data is Check check && check.Parent.CheckNameAvailable(newText, check.Type))) {
+            if ((data is Location location && location.Parent.LocationNameAvailable(newText))
+                || (data is Check check && (check.Parent as Location).CheckNameAvailable(newText, check.Type))) {
                 data.Id = newText;
                 MainProg.RuleSet.Model.EmitRowChanged(path, iter);
             }

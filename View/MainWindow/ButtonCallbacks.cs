@@ -63,12 +63,11 @@ namespace PokemonTrackerEditor.View.MainWindow {
 
         public static void OnAddLocationClick(MainWindow window, bool root=true) {
             DependencyEntry currentSelection = window.CurrentLocationSelection;
-            Location loc = root ? null : currentSelection == null ? null : currentSelection is Location location ? location : ((Check)currentSelection).Parent;
-            RuleSet ruleSet = MainProg.RuleSet;
+            ILocationContainer locationContainer = root || currentSelection == null ? MainProg.RuleSet : currentSelection is Location location ? location : ((Check)currentSelection).Parent;
             string template = "new_location_";
             int value = 0;
             Location newLoc;
-            while ((newLoc = ruleSet.AddLocation(template + value, loc)) == null) {
+            while ((newLoc = locationContainer.AddLocation(template + value)) == null) {
                 ++value;
             }
             ShowAndSelect(window.LocationTreeView, newLoc.Iter);
@@ -85,7 +84,7 @@ namespace PokemonTrackerEditor.View.MainWindow {
             RuleSet ruleSet = MainProg.RuleSet;
             DependencyEntry currentSelection = window.CurrentLocationSelection;
             if (window.CurrentLocationSelection != null) {
-                Location loc = currentSelection is Location location ? location : ((Check)currentSelection).Parent;
+                Location loc = currentSelection is Location location ? location : ((Check)currentSelection).Parent as Location;
                 string template = "new_" + type.ToString().ToLower() + "_";
                 int value = 0;
                 Check check;
@@ -103,7 +102,7 @@ namespace PokemonTrackerEditor.View.MainWindow {
                     ruleSet.RemoveLocation(loc);
                 }
                 else if (window.CurrentLocationSelection is Check check) {
-                    ruleSet.RemoveCheck(check.Parent, check);
+                    ruleSet.RemoveCheck(check.Parent as Location, check);
                 }
             }
         }
@@ -251,12 +250,12 @@ namespace PokemonTrackerEditor.View.MainWindow {
         }
 
         public static void OnMoveUpLocationClick(MainWindow window) {
-            IMovableItems<DependencyEntry> parent = window.CurrentLocationSelection.Parent ?? (IMovableItems<DependencyEntry>)MainProg.RuleSet;
+            IMovableItems<DependencyEntry> parent = window.CurrentLocationSelection.Parent ?? MainProg.RuleSet;
             MoveSelection(MainProg.RuleSet.Model, window.CurrentLocationSelection, true, parent);
         }
 
         public static void OnMoveDownLocationClick(MainWindow window) {
-            IMovableItems<DependencyEntry> parent = window.CurrentLocationSelection.Parent ?? (IMovableItems<DependencyEntry>)MainProg.RuleSet;
+            IMovableItems<DependencyEntry> parent = window.CurrentLocationSelection.Parent ?? MainProg.RuleSet;
             MoveSelection(MainProg.RuleSet.Model, window.CurrentLocationSelection, false, parent);
         }
 

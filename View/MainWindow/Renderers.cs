@@ -37,7 +37,7 @@ namespace PokemonTrackerEditor.View.MainWindow {
 
         public static void ConditionLocation(TreeViewColumn column, CellRenderer cell, TreeModel model, TreeIter iter) {
             Check cond = (Check)model.GetValue(iter, 0);
-            (cell as CellRendererText).Text = cond.Parent.LocationPath;
+            (cell as CellRendererText).Text = (cond.Parent as Location).LocationPath;
         }
 
         public static void StoryItemName(TreeViewColumn column, CellRenderer cell, TreeModel model, TreeIter iter) {

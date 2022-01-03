@@ -8,6 +8,14 @@ using Newtonsoft.Json;
 using Gtk;
 
 namespace PokemonTrackerEditor.Model {
+
+    interface ILocationContainer : IMovableItems<DependencyEntry> {
+        ILocationContainer Parent { get; set; }
+        Location AddLocation(string location);
+        void RemoveLocation(Location location);
+        bool LocationNameAvailable(string name);
+    }
+
     abstract class DependencyEntryBase : IEquatable<DependencyEntryBase>, IComparable<DependencyEntryBase> {
         private string id;
         public string Id { get => id; set { id = value; RuleSet.ReportChange(); } }
@@ -106,9 +114,9 @@ namespace PokemonTrackerEditor.Model {
         public int TrainerCondCount => trainersConditions.Count;
         public int StoryItemsCondCount => StoryItemsConditions.Count;
 
-        public Location Parent { get; set; }
+        public ILocationContainer Parent { get; set; }
 
-        public DependencyEntry(string id, RuleSet ruleSet, Location parent = null) : base(id, ruleSet) {
+        public DependencyEntry(string id, RuleSet ruleSet, ILocationContainer parent = null) : base(id, ruleSet) {
             itemsConditions = new List<Check>();
             pokemonConditions = new List<Check>();
             tradesConditions = new List<Check>();
@@ -123,7 +131,7 @@ namespace PokemonTrackerEditor.Model {
             trainersTreeStore = new TreeStore(typeof(Check));
             TrainersModel = new TreeModelSort(trainersTreeStore);
             Localization = new Localization(RuleSet, MainProg.SupportedLanguages.Keys.ToList(), ruleSet.ActiveLanguages);
-            Parent = parent;
+            Parent = parent ?? MainProg.RuleSet;
         }
 
         virtual public void Cleanup() {
@@ -191,7 +199,7 @@ namespace PokemonTrackerEditor.Model {
     }
 
     [JsonConverter(typeof(LocationConverter))]
-    class Location : DependencyEntry, IMovableItems<DependencyEntry> {
+    class Location : DependencyEntry, ILocationContainer {
         private List<Check> items;
         public List<Check> Items => new List<Check>(items);
         private List<Check> pokemon;
@@ -217,16 +225,16 @@ namespace PokemonTrackerEditor.Model {
         public TreeIter LocationIter { get; set; }
         public string LocationPath { get {
                 string ret = Id;
-                Location currentLoc = this;
-                while (currentLoc.Parent != null) {
+                ILocationContainer currentLoc = this;
+                while (!(currentLoc.Parent is RuleSet)) {
                     currentLoc = currentLoc.Parent;
-                    ret = currentLoc.Id + "." + ret;
+                    ret = (currentLoc as Location).Id + "." + ret;
                 }
                 return ret;
             }
         }
 
-        public Location(string id, RuleSet ruleSet, Location parent = null) : base(id, ruleSet, parent) {
+        public Location(string id, RuleSet ruleSet, ILocationContainer parent = null) : base(id, ruleSet, parent) {
             items = new List<Check>();
             pokemon = new List<Check>();
             trades = new List<Check>();
@@ -351,18 +359,24 @@ namespace PokemonTrackerEditor.Model {
             }
         }
 
-        public bool AddLocation(Location location) {
-            if (!locations.Contains(location)) {
-                locations.Add(location);
+        public Location AddLocation(string location) {
+            Location loc = new Location(location, RuleSet, this);
+            if (!locations.Contains(loc)) {
+                locations.Add(loc);
+                RuleSet.MergeLocationToModel(loc);
                 RuleSet.ReportChange();
-                return true;
+                return loc;
             }
-            return false;
+            else {
+                loc.Cleanup();
+                return null;
+            }
         }
 
         public void RemoveLocation(Location location) {
             location.Cleanup();
             while (locations.Remove(location)) ;
+            RuleSet.RemoveLocationIter(location);
             RuleSet.ReportChange();
         }
     }

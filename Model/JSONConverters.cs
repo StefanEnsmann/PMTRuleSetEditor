@@ -10,9 +10,11 @@ namespace PokemonTrackerEditor.Model {
     class DependencyCache {
         public static Dictionary<string, Path> Locations;
         public static RuleSet ruleSet;
+        public static ILocationContainer currentLocationContainer;
 
         public static void Init() {
             ruleSet = null;
+            currentLocationContainer = null;
             if (Locations != null) {
                 foreach (Path p in Locations.Values) {
                     p.Clear();
@@ -98,7 +100,12 @@ namespace PokemonTrackerEditor.Model {
             serializer.Deserialize(reader, typeof(StoryItems));
             Console.WriteLine("Story items deserialized");
 
+            // maps
+
             reader.Read(); // "locations"
+            reader.Read(); // StartArray
+            DependencyCache.currentLocationContainer = ruleSet;
+            serializer.Deserialize(reader, typeof(Location));
 
             return ruleSet;
         }
@@ -218,7 +225,7 @@ namespace PokemonTrackerEditor.Model {
                     foreach (Check check in pair.Value) {
                         writer.WriteStartObject();
                         Formatting writerBackup = writer.Formatting; writer.Formatting = Formatting.None;
-                        writer.WritePropertyName("location"); writer.WriteValue(check.Parent.LocationPath);
+                        writer.WritePropertyName("location"); writer.WriteValue((check.Parent as Location).LocationPath);
                         writer.WritePropertyName("id"); writer.WriteValue(check.Id);
                         writer.WriteEndObject();
                         writer.Formatting = writerBackup;

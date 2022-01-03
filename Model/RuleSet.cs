@@ -10,7 +10,7 @@ using Gtk;
 
 namespace PokemonTrackerEditor.Model {
     [JsonConverter(typeof(RuleSetConverter))]
-    class RuleSet : IMovableItems<DependencyEntry> {
+    class RuleSet : ILocationContainer {
         public string Name { get; set; }
         public string Game { get; set; }
 
@@ -22,6 +22,8 @@ namespace PokemonTrackerEditor.Model {
         private List<string> activeLanguages;
         public List<string> ActiveLanguages => new List<string>(activeLanguages);
         public bool HasChanged { get; private set; }
+
+        public ILocationContainer Parent { get { return null; } set { } }
 
         public RuleSet() {
             treeStore = new TreeStore(typeof(DependencyEntryBase));
@@ -51,40 +53,42 @@ namespace PokemonTrackerEditor.Model {
             return available;
         }
 
-        public Location AddLocation(string location, Location parent = null) {
-            Location loc = new Location(location, this, parent);
-            if (!(parent != null ? !parent.LocationNameAvailable(location) : locations.Contains(loc))) {
-                if (parent == null) {
-                    locations.Add(loc);
-                    loc.Iter = treeStore.AppendValues(loc);
-                }
-                else {
-                    parent.AddLocation(loc);
-                    loc.Iter = treeStore.AppendValues(parent.LocationIter, loc);
-                }
-                loc.ItemIter = treeStore.AppendValues(loc.Iter, new LocationCategory("Items", loc, Check.CheckType.ITEM, this));
-                loc.PokemonIter = treeStore.AppendValues(loc.Iter, new LocationCategory("Pokémon", loc, Check.CheckType.POKEMON, this));
-                loc.TradeIter = treeStore.AppendValues(loc.Iter, new LocationCategory("Trades", loc, Check.CheckType.TRADE, this));
-                loc.TrainerIter = treeStore.AppendValues(loc.Iter, new LocationCategory("Trainers", loc, Check.CheckType.TRAINER, this));
-                loc.LocationIter = treeStore.AppendValues(loc.Iter, new LocationCategoryForLocations("Locations", loc, this));
+        public Location AddLocation(string location) {
+            Location loc = new Location(location, this, this);
+            if (!locations.Contains(loc)) {
+                locations.Add(loc);
+                MergeLocationToModel(loc);
                 HasChanged = true;
                 return loc;
             }
-            loc.Cleanup();
-            return null;
+            else {
+                loc.Cleanup();
+                return null;
+            }
         }
 
         public void RemoveLocation(Location location) {
+            locations.Remove(location);
+            RemoveLocationIter(location);
+            location.Cleanup();
+            HasChanged = true;
+        }
+
+        public void MergeLocationToModel(Location location) {
+            location.Iter = location.Parent is Location
+                ? treeStore.AppendValues((location.Parent as Location).Iter, location)
+                : treeStore.AppendValues(location);
+
+            location.ItemIter = treeStore.AppendValues(location.Iter, new LocationCategory("Items", location, Check.CheckType.ITEM, this));
+            location.PokemonIter = treeStore.AppendValues(location.Iter, new LocationCategory("Pokémon", location, Check.CheckType.POKEMON, this));
+            location.TradeIter = treeStore.AppendValues(location.Iter, new LocationCategory("Trades", location, Check.CheckType.TRADE, this));
+            location.TrainerIter = treeStore.AppendValues(location.Iter, new LocationCategory("Trainers", location, Check.CheckType.TRAINER, this));
+            location.LocationIter = treeStore.AppendValues(location.Iter, new LocationCategoryForLocations("Locations", location, this));
+        }
+
+        public void RemoveLocationIter(Location location) {
             TreeIter iter = location.Iter;
             treeStore.Remove(ref iter);
-            if (location.Parent != null) {
-                location.Parent.RemoveLocation(location);
-            }
-            else {
-                locations.Remove(location);
-                location.Cleanup();
-            }
-            HasChanged = true;
         }
 
         public bool MoveUp(DependencyEntry location) {
