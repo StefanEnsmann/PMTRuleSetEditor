@@ -9,12 +9,12 @@ using Gtk;
 using Newtonsoft.Json;
 
 namespace PokemonTrackerEditor.Model {
-    abstract class StoryItemBase : IEquatable<StoryItemBase>, IMovable {
+    abstract class StoryItemBase : IEquatable<StoryItemBase>, IMovable, ILocalizable {
         protected string id;
         abstract public string Id { get; set; }
         public TreeIter Iter { get; set; }
 
-        public Localization Localization { get; private set; }
+        public Localization Localization { get; set; }
         public RuleSet RuleSet { get; private set; }
 
         abstract public int DependencyCount { get; }

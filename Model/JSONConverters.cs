@@ -8,6 +8,9 @@ using Newtonsoft.Json;
 
 namespace PokemonTrackerEditor.Model {
     class DependencyCache {
+        public enum NextType { ITEM, POKEMON, TRAINER, TRADE, LOCATION }
+        public static NextType nextType;
+
         public static Dictionary<string, Path> Locations;
         public static RuleSet ruleSet;
         public static ILocationContainer currentLocationContainer;
@@ -105,7 +108,9 @@ namespace PokemonTrackerEditor.Model {
             reader.Read(); // "locations"
             reader.Read(); // StartArray
             DependencyCache.currentLocationContainer = ruleSet;
-            serializer.Deserialize(reader, typeof(Location));
+            while (serializer.Deserialize(reader, typeof(Location)) != null) ;
+
+            reader.Read(); // EndObject
 
             return ruleSet;
         }
@@ -162,10 +167,7 @@ namespace PokemonTrackerEditor.Model {
                     reader.Read(); // "url"
                     item.ImageURL = reader.ReadAsString();
                     reader.Read(); // "localization"
-                    Localization loc = (Localization)serializer.Deserialize(reader, typeof(Localization));
-                    foreach (KeyValuePair<string, string> pair in loc.Translations) {
-                        item.Localization[pair.Key] = pair.Value;
-                    }
+                    category.Localization = (Localization)serializer.Deserialize(reader, typeof(Localization));
                     reader.Read(); // EndObject
                     reader.Read(); // StartObject or EndArray
                 }
@@ -206,7 +208,62 @@ namespace PokemonTrackerEditor.Model {
         }
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer) {
-            throw new NotImplementedException();
+            reader.Read(); // StartObject or something else
+            if (reader.TokenType != JsonToken.StartObject) {
+                reader.Read(); // "id"
+                DependencyEntry entry = null;
+                string id = reader.ReadAsString();
+                switch (DependencyCache.nextType) {
+                    case DependencyCache.NextType.ITEM:
+                        entry = new Check(id, DependencyCache.ruleSet, Check.CheckType.ITEM, DependencyCache.currentLocationContainer as Location);
+                        break;
+                    case DependencyCache.NextType.POKEMON:
+                        entry = new Check(id, DependencyCache.ruleSet, Check.CheckType.POKEMON, DependencyCache.currentLocationContainer as Location);
+                        break;
+                    case DependencyCache.NextType.TRAINER:
+                        entry = new Check(id, DependencyCache.ruleSet, Check.CheckType.TRAINER, DependencyCache.currentLocationContainer as Location);
+                        break;
+                    case DependencyCache.NextType.TRADE:
+                        entry = new Check(id, DependencyCache.ruleSet, Check.CheckType.TRADE, DependencyCache.currentLocationContainer as Location);
+                        break;
+                    case DependencyCache.NextType.LOCATION:
+                        entry = DependencyCache.currentLocationContainer.AddLocation(id);
+                        break;
+                    default:
+                        return null;
+                }
+                if (DependencyCache.nextType != DependencyCache.NextType.LOCATION) {
+                    (DependencyCache.currentLocationContainer as Location).AddCheck(entry as Check);
+                }
+                reader.Read(); // "localization"
+                entry.Localization = (Localization)serializer.Deserialize(reader, typeof(Localization));
+                reader.Read(); // "conditions" or EndObject
+                reader.Read(); // StartObject
+                reader.Read(); // id or EndObject
+                while (reader.TokenType != JsonToken.EndObject) {
+                    string type = (string)reader.Value;
+                    switch (type) {
+                        case "items":
+                            break;
+                        case "pokemon":
+                            break;
+                        case "trainers":
+                            break;
+                        case "trades":
+                            break;
+                        case "story_items":
+                            break;
+                        default:
+                            Console.WriteLine("ERROR!");
+                            break;
+                    }
+                    reader.Read(); // id or EndObject
+                }
+                return entry;
+            }
+            else {
+                return null;
+            }
         }
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer) {
@@ -234,6 +291,10 @@ namespace PokemonTrackerEditor.Model {
                 }
             }
             if (entry.StoryItemsCondCount > 0) {
+                if (!hasOpened) {
+                    writer.WritePropertyName("conditions"); writer.WriteStartObject();
+                    hasOpened = true;
+                }
                 writer.WritePropertyName("story_items"); serializer.Serialize(writer, entry.StoryItemsConditions);
             }
             if (hasOpened) {
@@ -248,7 +309,13 @@ namespace PokemonTrackerEditor.Model {
         }
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer) {
-            throw new NotImplementedException();
+            DependencyCache.nextType = DependencyCache.NextType.LOCATION;
+            if (base.ReadJson(reader, objectType, existingValue, serializer) is Location loc) {
+                return loc;
+            }
+            else {
+                return null;
+            }
         }
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer) {
@@ -346,7 +413,7 @@ namespace PokemonTrackerEditor.Model {
             while (reader.TokenType != JsonToken.EndObject) {
                 string id = (string)reader.Value;
                 loc[id] = reader.ReadAsString();
-                reader.Read();
+                reader.Read(); // id or EndObject
             }
             return loc;
         }

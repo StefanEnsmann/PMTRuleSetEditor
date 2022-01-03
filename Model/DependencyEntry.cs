@@ -87,7 +87,7 @@ namespace PokemonTrackerEditor.Model {
         }
     }
 
-    abstract class DependencyEntry : DependencyEntryBase, IMovable {
+    abstract class DependencyEntry : DependencyEntryBase, IMovable, ILocalizable {
         private List<Check> itemsConditions;
         private List<Check> pokemonConditions;
         private List<Check> tradesConditions;
@@ -97,7 +97,7 @@ namespace PokemonTrackerEditor.Model {
         public List<Check> TradesConditions => new List<Check>(tradesConditions);
         public List<Check> TrainersConditions => new List<Check>(trainersConditions);
         public StoryItemsConditions StoryItemsConditions { get; private set; }
-        public Localization Localization { get; private set; }
+        public Localization Localization { get; set; }
         private TreeStore itemsTreeStore;
         private TreeStore pokemonTreeStore;
         private TreeStore tradesTreeStore;

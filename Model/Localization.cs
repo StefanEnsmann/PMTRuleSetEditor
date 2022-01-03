@@ -8,6 +8,10 @@ using Newtonsoft.Json;
 using Gtk;
 
 namespace PokemonTrackerEditor.Model {
+    interface ILocalizable {
+        Localization Localization { get; set; }
+    }
+
     class LocalizationEntry {
         public string Code { get; private set; }
         public string Value { get; set; }
