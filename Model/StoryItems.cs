@@ -22,7 +22,7 @@ namespace PokemonTrackerEditor.Model {
         public StoryItemBase(string id, RuleSet ruleSet) {
             this.id = id;
             RuleSet = ruleSet;
-            Localization = new Localization(RuleSet, MainProg.SupportedLanguages.Keys.ToList(), new List<string>());
+            Localization = new Localization(RuleSet, MainProg.SupportedLanguages.Keys.ToList(), ruleSet.ActiveLanguages);
         }
 
         abstract public void Cleanup();

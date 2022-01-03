@@ -33,18 +33,13 @@ namespace PokemonTrackerEditor.View.MainWindow {
             return loadFile;
         }
         public static void OnNewFileClick(MainWindow window) {
-            RuleSet ruleSet = MainProg.RuleSet;
             if (AskForFileSave(window)) {
                 window.SetRuleSet(MainProg.NewRuleSet(), null);
             }
         }
 
         public static void OnSelectFileClick(MainWindow window) {
-            RuleSet ruleSet = MainProg.RuleSet;
             if (AskForFileSave(window)) {
-                if (ruleSet != null) {
-                    ruleSet.Cleanup();
-                }
                 string selectedFile = CustomDialog.SelectRuleSetFile(window, "Select rule set file", false);
                 if (selectedFile != null) {
                     window.SetRuleSet(MainProg.LoadRuleSet(selectedFile), selectedFile);

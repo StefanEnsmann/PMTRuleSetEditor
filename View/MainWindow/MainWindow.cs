@@ -20,10 +20,19 @@ namespace PokemonTrackerEditor.View.MainWindow {
         private Entry storyItemsURLEntry;
         public TreeView pokedexTreeView { get; private set; }
 
+        private Entry rulesetNameEntry;
+        private ComboBoxEntry gameNameComboBox;
+        private Dictionary<string, CheckButton> languageButtons;
+
         private Dictionary<string, TreeView> locationConditionsTreeViews;
 
         public void SetRuleSet(RuleSet ruleSet, string filename) {
             SetRuleSetPath(filename);
+            rulesetNameEntry.Text = ruleSet.Name;
+            gameNameComboBox.Entry.Text = ruleSet.Game;
+            foreach (KeyValuePair<string, CheckButton> pair in languageButtons) {
+                pair.Value.Active = ruleSet.ActiveLanguages.Contains(pair.Key);
+            }
             locationTreeView.Model = ruleSet.Model;
             locationTreeView.Selection.SelectIter(TreeIter.Zero);
             storyItemsTreeView.Model = ruleSet.StoryItems.Model;
@@ -156,7 +165,7 @@ namespace PokemonTrackerEditor.View.MainWindow {
             VBox generalBox = new VBox { Spacing = 5 };
 
             Frame rulesetNameFrame = new Frame("Ruleset Name");
-            Entry rulesetNameEntry = new Entry();
+            rulesetNameEntry = new Entry();
             rulesetNameEntry.Changed += (object sender, EventArgs args) => { MainProg.RuleSet.Name = ((Entry)sender).Text; };
             rulesetNameFrame.Add(rulesetNameEntry);
             generalBox.PackStart(rulesetNameFrame, false, false, 0);
@@ -166,18 +175,20 @@ namespace PokemonTrackerEditor.View.MainWindow {
             foreach (string game in MainProg.DefaultGames) {
                 gameModel.AppendValues(game);
             }
-            ComboBoxEntry gameNameComboBox = ComboBoxEntry.NewText();
+            gameNameComboBox = ComboBoxEntry.NewText();
             gameNameComboBox.Model = gameModel;
-            gameNameComboBox.Changed += (object sender, EventArgs args) => { MainProg.RuleSet.Game = ((ComboBox)sender).ActiveText; };
+            gameNameComboBox.Changed += (object sender, EventArgs args) => { MainProg.RuleSet.Game = ((ComboBoxEntry)sender).ActiveText; };
             gameFrame.Add(gameNameComboBox);
 
             generalBox.PackStart(gameFrame, false, false, 0);
 
+            languageButtons = new Dictionary<string, CheckButton>();
             Frame languagesFrame = new Frame("Languages");
             Table languagesTable = new Table(3, 3, false);
             uint row = 0, col = 0;
             foreach (KeyValuePair<string, string> languages in MainProg.SupportedLanguages) {
                 CheckButton chkBtn = CreateLanguageCheckButton(languages.Key, languages.Value);
+                languageButtons[languages.Key] = chkBtn;
                 chkBtn.Toggled += (object sender, EventArgs args) => { MainProg.RuleSet.SetLanguageActive(languages.Key, ((CheckButton)sender).Active); };
                 languagesTable.Attach(chkBtn, col, col + 1, row, row + 1);
                 col = (col + 1) % 3;

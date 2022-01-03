@@ -67,9 +67,6 @@ namespace PokemonTrackerEditor.Model {
                 loc.TradeIter = treeStore.AppendValues(loc.Iter, new LocationCategory("Trades", loc, Check.CheckType.TRADE, this));
                 loc.TrainerIter = treeStore.AppendValues(loc.Iter, new LocationCategory("Trainers", loc, Check.CheckType.TRAINER, this));
                 loc.LocationIter = treeStore.AppendValues(loc.Iter, new LocationCategoryForLocations("Locations", loc, this));
-                foreach (string activeLanguage in activeLanguages) {
-                    loc.SetLanguageActive(activeLanguage);
-                }
                 HasChanged = true;
                 return loc;
             }

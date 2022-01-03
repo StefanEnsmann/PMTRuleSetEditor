@@ -122,7 +122,7 @@ namespace PokemonTrackerEditor.Model {
             TradesModel = new TreeModelSort(tradesTreeStore);
             trainersTreeStore = new TreeStore(typeof(Check));
             TrainersModel = new TreeModelSort(trainersTreeStore);
-            Localization = new Localization(RuleSet, MainProg.SupportedLanguages.Keys.ToList(), new List<string>());
+            Localization = new Localization(RuleSet, MainProg.SupportedLanguages.Keys.ToList(), ruleSet.ActiveLanguages);
             Parent = parent;
         }
 
