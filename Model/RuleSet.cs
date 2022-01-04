@@ -44,13 +44,16 @@ namespace PokemonTrackerEditor.Model {
         }
 
         public bool LocationNameAvailable(string location) {
-            bool available = true;
-            Location loc = new Location(location, this);
-            if (locations.Contains(loc)) {
-                available = false;
+            if (!(new string[] { "items", "pokemon", "trades", "trainers" }).Contains(location)) {
+                bool available = true;
+                Location loc = new Location(location, this);
+                if (locations.Contains(loc)) {
+                    available = false;
+                }
+                loc.Cleanup();
+                return available;
             }
-            loc.Cleanup();
-            return available;
+            return false;
         }
 
         public Location AddLocation(string location) {
@@ -92,12 +95,10 @@ namespace PokemonTrackerEditor.Model {
         }
 
         public bool MoveUp(DependencyEntry location) {
-            Console.WriteLine("RuleSet: Move up " + location.Id);
             return InterfaceHelpers.SwapItems(locations, (Location)location, true);
         }
 
         public bool MoveDown(DependencyEntry location) {
-            Console.WriteLine("RuleSet: Move down " + location.Id);
             return InterfaceHelpers.SwapItems(locations, (Location)location, false);
         }
 
@@ -155,7 +156,6 @@ namespace PokemonTrackerEditor.Model {
         }
 
         public void SaveToFile(string filepath) {
-            Console.WriteLine("RuleSet save");
             activeLanguages.Sort();
             JsonSerializer serializer = JsonSerializer.Create(new JsonSerializerSettings() {
                 ReferenceLoopHandling = ReferenceLoopHandling.Serialize

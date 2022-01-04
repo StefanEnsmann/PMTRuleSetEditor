@@ -109,6 +109,15 @@ namespace PokemonTrackerEditor.Model {
             items = new List<StoryItem>();
         }
 
+        public StoryItem FindStoryItem(string item) {
+            foreach (StoryItem it in items) {
+                if (it.Id.Equals(item)) {
+                    return it;
+                }
+            }
+            return null;
+        }
+
         public bool StoryItemNameAvailable(string name) {
             foreach(StoryItem item in items) {
                 if (item.Id.Equals(name))
@@ -170,6 +179,19 @@ namespace PokemonTrackerEditor.Model {
             RuleSet = ruleSet;
             Model = new TreeStore(typeof(StoryItemBase));
             categories = new List<StoryItemCategory>();
+        }
+
+        public StoryItemCategory FindStoryItemCategory(string category) {
+            foreach (StoryItemCategory cat in categories) {
+                if (cat.Id.Equals(category)) {
+                    return cat;
+                }
+            }
+            return null;
+        }
+
+        public StoryItem FindStoryItem(string category, string item) {
+            return FindStoryItemCategory(category)?.FindStoryItem(item);
         }
 
         public bool CategoryNameAvailable(string name) {

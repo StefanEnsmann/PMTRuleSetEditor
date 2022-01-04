@@ -99,7 +99,6 @@ namespace PokemonTrackerEditor {
         }
 
         public static RuleSet LoadRuleSet(string file) {
-            Console.WriteLine("MainProg.LoadRuleSet(" + file + ")");
             RuleSet.Cleanup();
             RuleSet = RuleSet.FromFile(file);
             CurrentFile = file;

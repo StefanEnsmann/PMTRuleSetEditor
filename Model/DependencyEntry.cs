@@ -116,6 +116,8 @@ namespace PokemonTrackerEditor.Model {
 
         public ILocationContainer Parent { get; set; }
 
+        public virtual string FullPath => "";
+
         public DependencyEntry(string id, RuleSet ruleSet, ILocationContainer parent = null) : base(id, ruleSet) {
             itemsConditions = new List<Check>();
             pokemonConditions = new List<Check>();
@@ -233,6 +235,7 @@ namespace PokemonTrackerEditor.Model {
                 return ret;
             }
         }
+        public override string FullPath => LocationPath;
 
         public Location(string id, RuleSet ruleSet, ILocationContainer parent = null) : base(id, ruleSet, parent) {
             items = new List<Check>();
@@ -289,13 +292,16 @@ namespace PokemonTrackerEditor.Model {
         }
 
         public bool LocationNameAvailable(string locationName) {
-            Location location = new Location(locationName, RuleSet);
-            bool available = true;
-            if (locations.Contains(location)) {
-                available = false;
+            if (!(new string[] { "items", "pokemon", "trades", "trainers" }).Contains(locationName)) {
+                Location location = new Location(locationName, RuleSet);
+                bool available = true;
+                if (locations.Contains(location)) {
+                    available = false;
+                }
+                location.Cleanup();
+                return available;
             }
-            location.Cleanup();
-            return available;
+            return false;
         }
 
         private List<Check> GetListForCheck(Check check) {
@@ -390,6 +396,7 @@ namespace PokemonTrackerEditor.Model {
         public CheckType Type { get; private set; }
         private readonly Dictionary<DependencyEntry, TreeIter> dependingEntries;
         public int DependingEntryCount => dependingEntries.Count;
+        public override string FullPath => (Parent as Location).LocationPath + "." + Type.ToString().ToLower() + (Type == CheckType.POKEMON ? "." : "s.") + Id;
 
         public Check(string id, RuleSet ruleSet, CheckType type, Location parent = null) : base(id, ruleSet, parent) {
             Type = type;

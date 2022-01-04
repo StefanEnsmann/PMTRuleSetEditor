@@ -61,6 +61,7 @@ namespace PokemonTrackerEditor.Model {
         }
     }
 
+    [JsonConverter(typeof(StoryItemConditionConverter))]
     abstract class StoryItemConditionCollection : StoryItemConditionBase {
         protected List<StoryItemConditionBase> conditions;
         public List<StoryItemConditionBase> Conditions => new List<StoryItemConditionBase>(conditions);
@@ -86,20 +87,22 @@ namespace PokemonTrackerEditor.Model {
             conditions = new List<StoryItemConditionBase>();
         }
 
-        public void AddStoryItemCondition(StoryItem storyItem) {
+        public StoryItemCondition AddStoryItemCondition(StoryItem storyItem) {
             if (CanAddCondition) {
                 StoryItemCondition cond = new StoryItemCondition(storyItem, this);
                 if (!conditions.Contains(cond)) {
                     conditions.Add(cond);
                     InsertConditionToTree(cond, Iter);
+                    return cond;
                 }
                 else {
                     cond.Cleanup();
                 }
             }
+            return null;
         }
 
-        public void AddANDCollection() {
+        public StoryItemANDCondition AddANDCollection() {
             if (CanAddCondition) {
                 string template = "AND ";
                 int value = 0;
@@ -110,10 +113,12 @@ namespace PokemonTrackerEditor.Model {
                 }
                 conditions.Add(cond);
                 InsertConditionToTree(cond, Iter);
+                return cond;
             }
+            return null;
         }
 
-        public void AddORCollection() {
+        public StoryItemORCondition AddORCollection() {
             if (CanAddCondition) {
                 string template = "OR ";
                 int value = 0;
@@ -124,10 +129,12 @@ namespace PokemonTrackerEditor.Model {
                 }
                 conditions.Add(cond);
                 InsertConditionToTree(cond, Iter);
+                return cond;
             }
+            return null;
         }
 
-        public void AddNOTCollection() {
+        public StoryItemNOTCondition AddNOTCollection() {
             if (CanAddCondition) {
                 string template = "NOT ";
                 int value = 0;
@@ -138,7 +145,9 @@ namespace PokemonTrackerEditor.Model {
                 }
                 conditions.Add(cond);
                 InsertConditionToTree(cond, Iter);
+                return cond;
             }
+            return null;
         }
 
         virtual protected void ReportChange() {

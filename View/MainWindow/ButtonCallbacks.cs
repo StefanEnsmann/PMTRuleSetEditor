@@ -156,7 +156,6 @@ namespace PokemonTrackerEditor.View.MainWindow {
                 StoryItem storyItem = CustomDialog.SelectStoryItem(window, "Select story item", MainProg.RuleSet.StoryItems.Model);
                 if (storyItem != null) {
                     StoryItemConditionCollection collection = GetSelectedStoryItemConditionContainer(window, treeView);
-                    Console.WriteLine(collection.Id);
                     collection.AddStoryItemCondition(storyItem);
                 }
             }
@@ -165,7 +164,6 @@ namespace PokemonTrackerEditor.View.MainWindow {
         public static void OnAddStoryItemConditionANDCollectionClick(MainWindow window, TreeView treeView) {
             if (window.CurrentLocationSelection != null) {
                 StoryItemConditionCollection collection = GetSelectedStoryItemConditionContainer(window, treeView);
-                Console.WriteLine(collection.Id);
                 collection.AddANDCollection();
             }
         }
@@ -173,7 +171,6 @@ namespace PokemonTrackerEditor.View.MainWindow {
         public static void OnAddStoryItemConditionORCollectionClick(MainWindow window, TreeView treeView) {
             if (window.CurrentLocationSelection != null) {
                 StoryItemConditionCollection collection = GetSelectedStoryItemConditionContainer(window, treeView);
-                Console.WriteLine(collection.Id);
                 collection.AddORCollection();
             }
         }
@@ -181,7 +178,6 @@ namespace PokemonTrackerEditor.View.MainWindow {
         public static void OnAddStoryItemConditionNOTCollectionClick(MainWindow window, TreeView treeView) {
             if (window.CurrentLocationSelection != null) {
                 StoryItemConditionCollection collection = GetSelectedStoryItemConditionContainer(window, treeView);
-                Console.WriteLine(collection.Id);
                 collection.AddNOTCollection();
             }
         }
@@ -190,11 +186,9 @@ namespace PokemonTrackerEditor.View.MainWindow {
             if (window.CurrentLocationSelection != null) {
                 StoryItemConditionBase selection = GetSelectedStoryItemCondition(window, treeView);
                 if (selection is StoryItemsConditions conditions) {
-                    Console.WriteLine("Removing all conditions");
                     conditions.RemoveAll();
                 }
                 else {
-                    Console.WriteLine(selection.Id);
                     selection.Container.RemoveStoryItemCondition(selection);
                 }
             }
