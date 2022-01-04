@@ -64,6 +64,8 @@ namespace PokemonTrackerEditor.Model {
     abstract class StoryItemConditionCollection : StoryItemConditionBase {
         protected List<StoryItemConditionBase> conditions;
         public List<StoryItemConditionBase> Conditions => new List<StoryItemConditionBase>(conditions);
+        public virtual bool CanAddCondition => true;
+        public virtual string Type => "NONE";
         public int Count {
             get {
                 int ret = 0;
@@ -85,38 +87,58 @@ namespace PokemonTrackerEditor.Model {
         }
 
         public void AddStoryItemCondition(StoryItem storyItem) {
-            StoryItemCondition cond = new StoryItemCondition(storyItem, this);
-            if (!conditions.Contains(cond)) {
-                conditions.Add(cond);
-                InsertConditionToTree(cond, Iter);
-            }
-            else {
-                cond.Cleanup();
+            if (CanAddCondition) {
+                StoryItemCondition cond = new StoryItemCondition(storyItem, this);
+                if (!conditions.Contains(cond)) {
+                    conditions.Add(cond);
+                    InsertConditionToTree(cond, Iter);
+                }
+                else {
+                    cond.Cleanup();
+                }
             }
         }
 
         public void AddANDCollection() {
-            string template = "AND ";
-            int value = 0;
-            StoryItemANDCondition cond = new StoryItemANDCondition(template + value, this);
-            while (conditions.Contains(cond)) {
-                ++value;
-                cond = new StoryItemANDCondition(template + value, this);
+            if (CanAddCondition) {
+                string template = "AND ";
+                int value = 0;
+                StoryItemANDCondition cond = new StoryItemANDCondition(template + value, this);
+                while (conditions.Contains(cond)) {
+                    ++value;
+                    cond = new StoryItemANDCondition(template + value, this);
+                }
+                conditions.Add(cond);
+                InsertConditionToTree(cond, Iter);
             }
-            conditions.Add(cond);
-            InsertConditionToTree(cond, Iter);
         }
 
         public void AddORCollection() {
-            string template = "OR ";
-            int value = 0;
-            StoryItemORCondition cond = new StoryItemORCondition(template + value, this);
-            while (conditions.Contains(cond)) {
-                ++value;
-                cond = new StoryItemORCondition(template + value, this);
+            if (CanAddCondition) {
+                string template = "OR ";
+                int value = 0;
+                StoryItemORCondition cond = new StoryItemORCondition(template + value, this);
+                while (conditions.Contains(cond)) {
+                    ++value;
+                    cond = new StoryItemORCondition(template + value, this);
+                }
+                conditions.Add(cond);
+                InsertConditionToTree(cond, Iter);
             }
-            conditions.Add(cond);
-            InsertConditionToTree(cond, Iter);
+        }
+
+        public void AddNOTCollection() {
+            if (CanAddCondition) {
+                string template = "NOT ";
+                int value = 0;
+                StoryItemNOTCondition cond = new StoryItemNOTCondition(template + value, this);
+                while (conditions.Contains(cond)) {
+                    ++value;
+                    cond = new StoryItemNOTCondition(template + value, this);
+                }
+                conditions.Add(cond);
+                InsertConditionToTree(cond, Iter);
+            }
         }
 
         virtual protected void ReportChange() {
@@ -154,7 +176,7 @@ namespace PokemonTrackerEditor.Model {
 
     [JsonConverter(typeof(StoryItemConditionConverter))]
     class StoryItemANDCondition : StoryItemConditionCollection {
-
+        public override string Type => "AND";
         public StoryItemANDCondition(string id, StoryItemConditionCollection container) : base(id, container) {
 
         }
@@ -162,8 +184,17 @@ namespace PokemonTrackerEditor.Model {
 
     [JsonConverter(typeof(StoryItemConditionConverter))]
     class StoryItemORCondition : StoryItemConditionCollection {
-
+        public override string Type => "OR";
         public StoryItemORCondition(string id, StoryItemConditionCollection container) : base(id, container) {
+
+        }
+    }
+
+    [JsonConverter(typeof(StoryItemConditionConverter))]
+    class StoryItemNOTCondition : StoryItemConditionCollection {
+        public override string Type => "NOT";
+        public override bool CanAddCondition => conditions.Count == 0;
+        public StoryItemNOTCondition(string id, StoryItemConditionCollection container) : base(id, container) {
 
         }
     }

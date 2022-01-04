@@ -26,7 +26,7 @@ namespace PokemonTrackerEditor.Model {
 
     [JsonConverter(typeof(LocalizationConverter))]
     class Localization {
-        private Dictionary<string, LocalizationEntry> translations;
+        private readonly Dictionary<string, LocalizationEntry> translations;
         public Dictionary<string, string> Translations {
             get {
                 Dictionary<string, string> trans = new Dictionary<string, string>();
@@ -36,7 +36,7 @@ namespace PokemonTrackerEditor.Model {
                 return trans;
             }
         }
-        private TreeStore treeStore;
+        private readonly TreeStore treeStore;
         public TreeModelSort Model { get; private set; }
         public RuleSet RuleSet { get; private set; }
 

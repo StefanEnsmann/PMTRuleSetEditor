@@ -14,12 +14,12 @@ namespace PokemonTrackerEditor.Model {
         public string Name { get; set; }
         public string Game { get; set; }
 
-        private TreeStore treeStore;
+        private readonly TreeStore treeStore;
         public TreeStore Model => treeStore;
-        private List<Location> locations;
+        private readonly List<Location> locations;
         public List<Location> Locations => new List<Location>(locations);
         public StoryItems StoryItems { get; private set; }
-        private List<string> activeLanguages;
+        private readonly List<string> activeLanguages;
         public List<string> ActiveLanguages => new List<string>(activeLanguages);
         public bool HasChanged { get; private set; }
 

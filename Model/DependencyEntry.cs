@@ -88,20 +88,20 @@ namespace PokemonTrackerEditor.Model {
     }
 
     abstract class DependencyEntry : DependencyEntryBase, IMovable, ILocalizable {
-        private List<Check> itemsConditions;
-        private List<Check> pokemonConditions;
-        private List<Check> tradesConditions;
-        private List<Check> trainersConditions;
+        private readonly List<Check> itemsConditions;
+        private readonly List<Check> pokemonConditions;
+        private readonly List<Check> tradesConditions;
+        private readonly List<Check> trainersConditions;
         public List<Check> ItemsConditions => new List<Check>(itemsConditions);
         public List<Check> PokemonConditions => new List<Check>(pokemonConditions);
         public List<Check> TradesConditions => new List<Check>(tradesConditions);
         public List<Check> TrainersConditions => new List<Check>(trainersConditions);
         public StoryItemsConditions StoryItemsConditions { get; private set; }
         public Localization Localization { get; set; }
-        private TreeStore itemsTreeStore;
-        private TreeStore pokemonTreeStore;
-        private TreeStore tradesTreeStore;
-        private TreeStore trainersTreeStore;
+        private readonly TreeStore itemsTreeStore;
+        private readonly TreeStore pokemonTreeStore;
+        private readonly TreeStore tradesTreeStore;
+        private readonly TreeStore trainersTreeStore;
         public TreeModelSort ItemsModel { get; private set; }
         public TreeModelSort PokemonModel { get; private set; }
         public TreeModelSort TradesModel { get; private set; }
@@ -200,15 +200,15 @@ namespace PokemonTrackerEditor.Model {
 
     [JsonConverter(typeof(LocationConverter))]
     class Location : DependencyEntry, ILocationContainer {
-        private List<Check> items;
+        private readonly List<Check> items;
         public List<Check> Items => new List<Check>(items);
-        private List<Check> pokemon;
+        private readonly List<Check> pokemon;
         public List<Check> Pokemon => new List<Check>(pokemon);
-        private List<Check> trades;
+        private readonly List<Check> trades;
         public List<Check> Trades => new List<Check>(trades);
-        private List<Check> trainers;
+        private readonly List<Check> trainers;
         public List<Check> Trainers => new List<Check>(trainers);
-        private List<Location> locations;
+        private readonly List<Location> locations;
         public List<Location> Locations => new List<Location>(locations);
 
         public int CheckCount => ItemCount + PokemonCount + TradeCount + TrainerCount + SumLocationChecks();
@@ -388,7 +388,7 @@ namespace PokemonTrackerEditor.Model {
         }
 
         public CheckType Type { get; private set; }
-        private Dictionary<DependencyEntry, TreeIter> dependingEntries;
+        private readonly Dictionary<DependencyEntry, TreeIter> dependingEntries;
         public int DependingEntryCount => dependingEntries.Count;
 
         public Check(string id, RuleSet ruleSet, CheckType type, Location parent = null) : base(id, ruleSet, parent) {

@@ -92,7 +92,7 @@ namespace PokemonTrackerEditor.Model {
 
         public StoryItems Parent { get; private set; }
 
-        private List<StoryItem> items;
+        private readonly List<StoryItem> items;
         public List<StoryItem> Items => new List<StoryItem>(items);
         public override int DependencyCount {
             get {

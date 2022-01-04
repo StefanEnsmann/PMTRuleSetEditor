@@ -10,21 +10,21 @@ namespace PokemonTrackerEditor.View.MainWindow {
         public DependencyEntry CurrentLocationSelection { get; set; }
         public StoryItemBase CurrentStoryItemSelection { get; set; }
 
-        private string windowTitle = "Pokémon Map Tracker Rule Set Editor";
-        private TreeView locationTreeView;
+        private readonly string windowTitle = "Pokémon Map Tracker Rule Set Editor";
+        private readonly TreeView locationTreeView;
         public TreeView LocationTreeView => locationTreeView;
-        private TreeView locationLocalizationTreeView;
-        private TreeView storyItemsTreeView;
+        private readonly TreeView locationLocalizationTreeView;
+        private readonly TreeView storyItemsTreeView;
         public TreeView StoryItemsTreeView => storyItemsTreeView;
-        private TreeView storyItemsLocalizationTreeView;
-        private Entry storyItemsURLEntry;
+        private readonly TreeView storyItemsLocalizationTreeView;
+        private readonly Entry storyItemsURLEntry;
         public TreeView pokedexTreeView { get; private set; }
 
-        private Entry rulesetNameEntry;
-        private ComboBoxEntry gameNameComboBox;
-        private Dictionary<string, CheckButton> languageButtons;
+        private readonly Entry rulesetNameEntry;
+        private readonly ComboBoxEntry gameNameComboBox;
+        private readonly Dictionary<string, CheckButton> languageButtons;
 
-        private Dictionary<string, TreeView> locationConditionsTreeViews;
+        private readonly Dictionary<string, TreeView> locationConditionsTreeViews;
 
         public void SetRuleSet(RuleSet ruleSet, string filename) {
             SetRuleSetPath(filename);
@@ -251,7 +251,7 @@ namespace PokemonTrackerEditor.View.MainWindow {
             moveLocationUpButton.Clicked += (object sender, EventArgs args) => { ButtonCallbacks.OnMoveUpLocationClick(this); };
             locationTreeToolbar.Insert(moveLocationUpButton, 8);
 
-            ToolButton moveLocationDownButton = new ToolButton(Stock.GoUp) { Label = "Move down" };
+            ToolButton moveLocationDownButton = new ToolButton(Stock.GoDown) { Label = "Move down" };
             moveLocationDownButton.Clicked += (object sender, EventArgs args) => { ButtonCallbacks.OnMoveDownLocationClick(this); };
             locationTreeToolbar.Insert(moveLocationDownButton, 9);
 
@@ -317,9 +317,12 @@ namespace PokemonTrackerEditor.View.MainWindow {
             ToolButton addStoryItemORCollection = new ToolButton(Stock.Add) { Label = "OR" };
             addStoryItemORCollection.Clicked += (object sender, EventArgs args) => { ButtonCallbacks.OnAddStoryItemConditionORCollectionClick(this, condStoryItemTreeView); };
             condStoryItemBoxControls.Insert(addStoryItemORCollection, 2);
+            ToolButton addStoryItemNOTCollection = new ToolButton(Stock.Add) { Label = "NOT" };
+            addStoryItemNOTCollection.Clicked += (object sender, EventArgs args) => { ButtonCallbacks.OnAddStoryItemConditionNOTCollectionClick(this, condStoryItemTreeView); };
+            condStoryItemBoxControls.Insert(addStoryItemNOTCollection, 3);
             ToolButton removeStoryItemCondition = new ToolButton(Stock.Remove);
             removeStoryItemCondition.Clicked += (object sender, EventArgs args) => { ButtonCallbacks.OnRemoveStoryItemConditionClick(this, condStoryItemTreeView); };
-            condStoryItemBoxControls.Insert(removeStoryItemCondition, 3);
+            condStoryItemBoxControls.Insert(removeStoryItemCondition, 4);
 
             condStoryItemBox.PackStart(condStoryItemBoxControls, false, false, 0);
 

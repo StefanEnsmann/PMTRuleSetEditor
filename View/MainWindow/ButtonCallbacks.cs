@@ -178,6 +178,14 @@ namespace PokemonTrackerEditor.View.MainWindow {
             }
         }
 
+        public static void OnAddStoryItemConditionNOTCollectionClick(MainWindow window, TreeView treeView) {
+            if (window.CurrentLocationSelection != null) {
+                StoryItemConditionCollection collection = GetSelectedStoryItemConditionContainer(window, treeView);
+                Console.WriteLine(collection.Id);
+                collection.AddNOTCollection();
+            }
+        }
+
         public static void OnRemoveStoryItemConditionClick(MainWindow window, TreeView treeView) {
             if (window.CurrentLocationSelection != null) {
                 StoryItemConditionBase selection = GetSelectedStoryItemCondition(window, treeView);

@@ -238,26 +238,28 @@ namespace PokemonTrackerEditor.Model {
                 reader.Read(); // "localization"
                 entry.Localization = (Localization)serializer.Deserialize(reader, typeof(Localization));
                 reader.Read(); // "conditions" or EndObject
-                reader.Read(); // StartObject
-                reader.Read(); // id or EndObject
-                while (reader.TokenType != JsonToken.EndObject) {
-                    string type = (string)reader.Value;
-                    switch (type) {
-                        case "items":
-                            break;
-                        case "pokemon":
-                            break;
-                        case "trainers":
-                            break;
-                        case "trades":
-                            break;
-                        case "story_items":
-                            break;
-                        default:
-                            Console.WriteLine("ERROR!");
-                            break;
-                    }
+                if (reader.TokenType != JsonToken.EndObject) {
+                    reader.Read(); // StartObject
                     reader.Read(); // id or EndObject
+                    while (reader.TokenType != JsonToken.EndObject) {
+                        string type = (string)reader.Value;
+                        switch (type) {
+                            case "items":
+                                break;
+                            case "pokemon":
+                                break;
+                            case "trainers":
+                                break;
+                            case "trades":
+                                break;
+                            case "story_items":
+                                break;
+                            default:
+                                Console.WriteLine("ERROR!");
+                                break;
+                        }
+                        reader.Read(); // id or EndObject
+                    }
                 }
                 return entry;
             }
@@ -364,7 +366,7 @@ namespace PokemonTrackerEditor.Model {
 
     class StoryItemConditionConverter : JsonConverter {
         public override bool CanConvert(Type objectType) {
-            return (new List<Type> { typeof(StoryItemCondition), typeof(StoryItemANDCondition), typeof(StoryItemORCondition), typeof(StoryItemsConditions) }.Contains(objectType));
+            return (new List<Type> { typeof(StoryItemCondition), typeof(StoryItemANDCondition), typeof(StoryItemORCondition), typeof(StoryItemNOTCondition), typeof(StoryItemsConditions) }.Contains(objectType));
         }
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer) {
@@ -382,7 +384,7 @@ namespace PokemonTrackerEditor.Model {
             }
             else if (condition is StoryItemConditionCollection conditionalCollection) {
                 writer.WriteStartObject();
-                writer.WritePropertyName("type"); writer.WriteValue(condition is StoryItemANDCondition ? "AND" : "OR");
+                writer.WritePropertyName("type"); writer.WriteValue(conditionalCollection.Type);
                 writer.WritePropertyName("conditions"); writer.WriteStartArray();
                 foreach (StoryItemConditionBase nestedCondition in conditionalCollection.Conditions) {
                     serializer.Serialize(writer, nestedCondition);
