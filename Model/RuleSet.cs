@@ -94,6 +94,26 @@ namespace PokemonTrackerEditor.Model {
             treeStore.Remove(ref iter);
         }
 
+        public DependencyEntry ResolvePath(string path) {
+            return ResolvePath(path.Split('.').ToList());
+        }
+
+        public DependencyEntry ResolvePath(List<string> path) {
+            if (path.Count == 0) {
+                return null;
+            }
+            else {
+                string segment = path.First();
+                path.RemoveAt(0);
+                foreach (Location loc in locations) {
+                    if (loc.Id.Equals(segment)) {
+                        return loc.ResolvePath(path);
+                    }
+                }
+                return null;
+            }
+        }
+
         public void MergeCheckToModel(Check check) {
             TreeIter parentIter = TreeIter.Zero;
             Location location = check.Parent as Location;

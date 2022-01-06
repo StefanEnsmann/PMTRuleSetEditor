@@ -14,6 +14,9 @@ namespace PokemonTrackerEditor.Model {
         Location AddLocation(string location);
         void RemoveLocation(Location location);
         bool LocationNameAvailable(string name);
+
+        DependencyEntry ResolvePath(string path);
+        DependencyEntry ResolvePath(List<string> path);
     }
 
     abstract class DependencyEntryBase : IEquatable<DependencyEntryBase>, IComparable<DependencyEntryBase> {
@@ -390,6 +393,51 @@ namespace PokemonTrackerEditor.Model {
             while (locations.Remove(location)) ;
             RuleSet.RemoveLocationIter(location);
             RuleSet.ReportChange();
+        }
+
+        public DependencyEntry ResolvePath(string path) {
+            return ResolvePath(path.Split('.').ToList());
+        }
+
+        public DependencyEntry ResolvePath(List<string> path) {
+            if (path.Count == 0) {
+                return this;
+            }
+            else {
+                string segment = path.First();
+                path.RemoveAt(0);
+                List<Check> checks = null;
+                switch (segment) {
+                    case "items":
+                        checks = items;
+                        break;
+                    case "pokemon":
+                        checks = pokemon;
+                        break;
+                    case "trades":
+                        checks = trades;
+                        break;
+                    case "trainers":
+                        checks = trainers;
+                        break;
+                }
+                if (checks != null) {
+                    segment = path.First();
+                    foreach (Check check in checks) {
+                        if (check.Id.Equals(segment)) {
+                            return check;
+                        }
+                    }
+                }
+                else {
+                    foreach (Location loc in locations) {
+                        if (loc.Id.Equals(segment)) {
+                            return loc.ResolvePath(path);
+                        }
+                    }
+                }
+                return null;
+            }
         }
     }
 
