@@ -88,7 +88,7 @@ namespace PokemonTrackerEditor.View.MainWindow {
                 string template = "new_" + type.ToString().ToLower() + "_";
                 int value = 0;
                 Check check;
-                while ((check = ruleSet.AddCheck(loc, template + value, type)) == null) {
+                while ((check = loc.AddCheck(template + value, type)) == null) {
                     ++value;
                 }
                 ShowAndSelect(window.LocationTreeView, check.Iter);
@@ -102,7 +102,7 @@ namespace PokemonTrackerEditor.View.MainWindow {
                     ruleSet.RemoveLocation(loc);
                 }
                 else if (window.CurrentLocationSelection is Check check) {
-                    ruleSet.RemoveCheck(check.Parent as Location, check);
+                    (check.Parent as Location).RemoveCheck(check);
                 }
             }
         }

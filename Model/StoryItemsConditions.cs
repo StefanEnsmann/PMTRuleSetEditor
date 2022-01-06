@@ -8,6 +8,8 @@ using Newtonsoft.Json;
 using Gtk;
 
 namespace PokemonTrackerEditor.Model {
+
+    [JsonConverter(typeof(StoryItemConditionConverter))]
     abstract class StoryItemConditionBase : IEquatable<StoryItemConditionBase> {
         virtual public string Id { get; protected set; }
         public TreeIter Iter { get; set; }

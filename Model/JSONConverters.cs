@@ -31,50 +31,191 @@ namespace PokemonTrackerEditor.Model {
         }
     }
 
-    class RuleSetConverter : JsonConverter {
+    abstract class CustomConverter : JsonConverter {
+        private static readonly StartObjectClass soInstance = new StartObjectClass();
+        private static readonly EndObjectClass eoInstance = new EndObjectClass();
+        private static readonly StartArrayClass saInstance = new StartArrayClass();
+        private static readonly EndArrayClass eaInstance = new EndArrayClass();
+        public static StartObjectClass StartObject => soInstance;
+        public static EndObjectClass EndObject => eoInstance;
+        public static StartArrayClass StartArray => saInstance;
+        public static EndArrayClass EndArray => eaInstance;
+
+        public abstract class ReadParam {
+
+            public class TokenException : System.Exception {
+                public TokenException() : base() { }
+                public TokenException(string message) : base(message) { }
+            }
+
+            private readonly string v;
+            protected abstract JsonToken Type { get; }
+
+            public ReadParam(string value = null) {
+                v = value;
+            }
+
+            public bool Match(JsonReader reader) {
+                return reader.TokenType == Type && (v == null || v.Equals(reader.Value));
+            }
+
+            public override string ToString() {
+                return string.Format("({0}: {1})", Type.ToString(), v);
+            }
+        }
+
+        public class Property : ReadParam {
+            protected override JsonToken Type => JsonToken.PropertyName;
+            private static readonly Dictionary<string, Property> instances = new Dictionary<string, Property>();
+            private static readonly Property nullValue = new Property();
+
+            private Property(string value=null) : base(value) { }
+
+            public static Property Name(string value = null) {
+                Property ret;
+                if (value == null) {
+                    ret = nullValue;
+                }
+                else if (!instances.TryGetValue(value, out ret)) {
+                    ret = new Property(value);
+                    instances.Add(value, ret);
+                }
+                return ret;
+            }
+        }
+        public class StartObjectClass : ReadParam { protected override JsonToken Type => JsonToken.StartObject; public StartObjectClass() : base() { } }
+        public class EndObjectClass : ReadParam { protected override JsonToken Type => JsonToken.EndObject; public EndObjectClass() : base() { } }
+        public class StartArrayClass : ReadParam { protected override JsonToken Type => JsonToken.StartArray; public StartArrayClass() : base() { } }
+        public class EndArrayClass : ReadParam { protected override JsonToken Type => JsonToken.EndArray; public EndArrayClass() : base() { } }
+
+
+        private const bool DEBUG = true;
+        private static int indentation = 0;
+
+        public void Log(string message) {
+            for (int i = 0; i < indentation; ++i) {
+                Console.Write(" ");
+            }
+            Console.WriteLine(message);
+        }
+
+        public void Read(JsonReader reader, params ReadParam[] validTokens) {
+            reader.Read();
+            if (DEBUG)
+                Log("Read: " + reader.TokenType + " " + reader.Value?.ToString());
+            bool valid = validTokens.Length == 0;
+            foreach (ReadParam param in validTokens) {
+                if (param.Match(reader)) {
+                    valid = true;
+                    break;
+                }
+            }
+            if (!valid) {
+                throw new ReadParam.TokenException(
+                    string.Format(
+                        "Token ({0}: {1}) did not match the expected list:\n{2}",
+                        reader.TokenType.ToString(),
+                        reader.Value,
+                        string.Join<ReadParam>(", ", validTokens)
+                    )
+                );
+            }
+        }
+
+        public string ReadAsString(JsonReader reader) {
+            string s = reader.ReadAsString();
+            if (DEBUG)
+                Log("ReadAsString: " + s);
+            return s;
+        }
+
+        public int? ReadAsInt32(JsonReader reader) {
+            int? i = reader.ReadAsInt32();
+            if (DEBUG)
+                Log("ReadAsInt32: " + i);
+            return i;
+        }
+
+        public string StringValue(JsonReader reader) {
+            try {
+                string s = reader.Value.ToString();
+                if (DEBUG)
+                    Log("StringValue: " + s);
+                return s;
+            }
+            catch (Exception e) {
+                Log("ERROR in StringValue: " + reader.TokenType + " " + reader.Value);
+                throw e;
+            }
+        }
+
+        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer) {
+            Log("\n\n");
+            Log("-----------------------------------");
+            Log("Starting deserialization of type " + objectType.ToString());
+            return null;
+        }
+
+        public void Indent() {
+            indentation += 4;
+        }
+
+        public void Unindent() {
+            indentation -= 4;
+        }
+    }
+
+    class RuleSetConverter : CustomConverter {
         public override bool CanConvert(Type objectType) {
             return objectType == typeof(RuleSet);
         }
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer) {
+            base.ReadJson(reader, objectType, existingValue, serializer);
             DependencyCache.Init();
             RuleSet ruleSet = new RuleSet();
             DependencyCache.ruleSet = ruleSet;
-            reader.Read(); // "name"
-            ruleSet.Name = reader.ReadAsString();
-            reader.Read(); // "game"
-            ruleSet.Game = reader.ReadAsString();
+            Read(reader, Property.Name("name"));
+            ruleSet.Name = ReadAsString(reader);
+            Read(reader, Property.Name("game"));
+            ruleSet.Game = ReadAsString(reader);
 
             foreach (PokedexData.Entry entry in MainProg.Pokedex.List) {
                 entry.available = false;
             }
 
-            reader.Read(); // "pokedex"
-            reader.Read(); // StartArray
-            int? idx = reader.ReadAsInt32();
+            Read(reader, Property.Name("pokedex"));
+            Indent();
+            Read(reader, StartArray);
+            int? idx = ReadAsInt32(reader);
             while (idx.HasValue) {
                 MainProg.Pokedex.List[idx.Value].available = true;
-                idx = reader.ReadAsInt32();
+                idx = ReadAsInt32(reader);
             }
+            Unindent();
 
-            reader.Read(); // "languages"
-            reader.Read(); // StartArray
-            string str = reader.ReadAsString();
+            Read(reader, Property.Name("languages"));
+            Indent();
+            Read(reader, StartArray);
+            string str = ReadAsString(reader);
             while (str != null) {
                 ruleSet.SetLanguageActive(str);
-                str = reader.ReadAsString();
+                str = ReadAsString(reader);
             }
+            Unindent();
 
             serializer.Deserialize(reader, typeof(StoryItems));
 
             // maps
 
-            reader.Read(); // "locations"
-            reader.Read(); // StartArray
+            Read(reader, Property.Name("locations"));
+            Indent();
+            Read(reader, StartArray);
             DependencyCache.currentLocationContainer = ruleSet;
             while (serializer.Deserialize(reader, typeof(Location)) != null) ;
+            Unindent();
 
-            reader.Read(); // EndObject
+            Read(reader, EndObject);
 
             return ruleSet;
         }
@@ -108,36 +249,45 @@ namespace PokemonTrackerEditor.Model {
         }
     }
 
-    class StoryItemConverter : JsonConverter {
+    class StoryItemConverter : CustomConverter {
         public override bool CanConvert(Type objectType) {
             return objectType == typeof(StoryItem);
         }
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer) {
+            base.ReadJson(reader, objectType, existingValue, serializer);
             RuleSet ruleSet = DependencyCache.ruleSet;
             StoryItems storyItems = ruleSet.StoryItems;
-            reader.Read(); // "story_items"
-            reader.Read(); // StartAray
-            reader.Read(); // StartObject or EndArray
+            Read(reader, Property.Name("story_items"));
+            Indent();
+            Read(reader, StartArray);
+            Read(reader, StartObject, EndArray);
             while (reader.TokenType != JsonToken.EndArray) {
-                reader.Read(); // "id"
-                StoryItemCategory category = storyItems.AddStoryItemCategory(reader.ReadAsString());
-                reader.Read(); // "items"
-                reader.Read(); // StartArray
-                reader.Read(); // StartObject or EndArray
+                Indent();
+                Read(reader, Property.Name("id"));
+                StoryItemCategory category = storyItems.AddStoryItemCategory(ReadAsString(reader));
+                Read(reader, Property.Name("localization"));
+                category.Localization = (Localization)serializer.Deserialize(reader, typeof(Localization));
+                Read(reader, Property.Name("items"));
+                Read(reader, StartArray);
+                Read(reader, StartObject, EndArray);
                 while (reader.TokenType != JsonToken.EndArray) {
-                    reader.Read(); // "id"
-                    StoryItem item = category.AddStoryItem(reader.ReadAsString());
-                    reader.Read(); // "url"
-                    item.ImageURL = reader.ReadAsString();
-                    reader.Read(); // "localization"
-                    category.Localization = (Localization)serializer.Deserialize(reader, typeof(Localization));
-                    reader.Read(); // EndObject
-                    reader.Read(); // StartObject or EndArray
+                    Indent();
+                    Read(reader, Property.Name("id"));
+                    StoryItem item = category.AddStoryItem(ReadAsString(reader));
+                    Read(reader, Property.Name("url"));
+                    item.ImageURL = ReadAsString(reader);
+                    Read(reader, Property.Name("localization"));
+                    item.Localization = (Localization)serializer.Deserialize(reader, typeof(Localization));
+                    Read(reader, EndObject);
+                    Unindent();
+                    Read(reader, StartObject, EndArray);
                 }
-                reader.Read(); // EndObject
-                reader.Read(); // StartObject or EndArray
+                Read(reader, EndObject);
+                Unindent();
+                Read(reader, StartObject, EndArray);
             }
+            Unindent();
             return storyItems;
         }
 
@@ -148,6 +298,7 @@ namespace PokemonTrackerEditor.Model {
             foreach (StoryItemCategory category in storyItems.Categories) {
                 writer.WriteStartObject();
                 writer.WritePropertyName("id"); writer.WriteValue(category.Id);
+                writer.WritePropertyName("localization"); serializer.Serialize(writer, category.Localization);
                 writer.WritePropertyName("items");
                 writer.WriteStartArray();
                 foreach (StoryItem item in category.Items) {
@@ -166,49 +317,50 @@ namespace PokemonTrackerEditor.Model {
         }
     }
 
-    abstract class DependencyEntryConverter : JsonConverter {
+    abstract class DependencyEntryConverter : CustomConverter {
         public override bool CanConvert(Type objectType) {
             return false;
         }
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer) {
-            reader.Read(); // StartObject or something else
+            base.ReadJson(reader, objectType, existingValue, serializer);
+            Read(reader); // StartObject or something else
             if (reader.TokenType == JsonToken.StartObject) {
-                reader.Read(); // "id"
+                Indent();
+                Read(reader, Property.Name("id"));
                 DependencyEntry entry;
-                string id = reader.ReadAsString();
+                string id = ReadAsString(reader);
                 switch (DependencyCache.nextType) {
                     case DependencyCache.NextType.ITEM:
-                        entry = new Check(id, DependencyCache.ruleSet, Check.CheckType.ITEM, DependencyCache.currentLocationContainer as Location);
+                        entry = (DependencyCache.currentLocationContainer as Location).AddCheck(id, Check.CheckType.ITEM);
                         break;
                     case DependencyCache.NextType.POKEMON:
-                        entry = new Check(id, DependencyCache.ruleSet, Check.CheckType.POKEMON, DependencyCache.currentLocationContainer as Location);
+                        entry = (DependencyCache.currentLocationContainer as Location).AddCheck(id, Check.CheckType.POKEMON);
                         break;
                     case DependencyCache.NextType.TRAINER:
-                        entry = new Check(id, DependencyCache.ruleSet, Check.CheckType.TRAINER, DependencyCache.currentLocationContainer as Location);
+                        entry = (DependencyCache.currentLocationContainer as Location).AddCheck(id, Check.CheckType.TRAINER);
                         break;
                     case DependencyCache.NextType.TRADE:
-                        entry = new Check(id, DependencyCache.ruleSet, Check.CheckType.TRADE, DependencyCache.currentLocationContainer as Location);
+                        entry = (DependencyCache.currentLocationContainer as Location).AddCheck(id, Check.CheckType.TRADE);
                         break;
                     case DependencyCache.NextType.LOCATION:
                         entry = DependencyCache.currentLocationContainer.AddLocation(id);
                         break;
                     default:
+                        Unindent();
                         return null;
                 }
                 DependencyCache.currentDependencyEntry = entry;
-                if (DependencyCache.nextType != DependencyCache.NextType.LOCATION) {
-                    (DependencyCache.currentLocationContainer as Location).AddCheck(entry as Check);
-                }
-                reader.Read(); // "localization"
+                Read(reader, Property.Name("localization"));
                 entry.Localization = (Localization)serializer.Deserialize(reader, typeof(Localization));
-                reader.Read(); // "conditions" or EndObject
-                if (reader.TokenType == JsonToken.PropertyName && reader.Value.ToString() == "conditions") {
-                    reader.Read(); // StartObject
-                    reader.Read(); // id or EndObject
+                Read(reader, Property.Name(), EndObject); // "conditions" or EndObject or property from subclass
+                if (reader.TokenType == JsonToken.PropertyName && StringValue(reader) == "conditions") {
+                    Indent();
+                    Read(reader, StartObject);
+                    Read(reader, Property.Name(), EndObject);
                     List<string> conditionsCache = new List<string>();
                     while (reader.TokenType != JsonToken.EndObject) {
-                        string type = (string)reader.Value;
+                        string type = StringValue(reader);
                         switch (type) {
                             case "items":
                             case "pokemon":
@@ -224,12 +376,15 @@ namespace PokemonTrackerEditor.Model {
                                 Console.WriteLine("ERROR! Unknown dependency condition: " + type);
                                 break;
                         }
-                        reader.Read(); // id or EndObject
+                        Read(reader, Property.Name(), EndObject);
                     }
                     if (conditionsCache.Count > 0) {
                         DependencyCache.conditions.Add(entry.FullPath, conditionsCache);
                     }
+                    Unindent();
+                    Read(reader, Property.Name(), EndObject); // EndObject or property from subclass
                 }
+                Unindent();
                 return entry;
             }
             else {
@@ -238,26 +393,28 @@ namespace PokemonTrackerEditor.Model {
         }
 
         private void ReadConditionsList(JsonReader reader, string type, List<string> conditionsCache) {
-            reader.Read(); // StartArray
-            reader.Read(); // StartObject or EndArray
+            Indent();
+            Read(reader, StartArray);
+            Read(reader, StartObject, EndArray);
             while (reader.TokenType != JsonToken.EndArray) {
-                reader.Read(); // "location"
-                string location = reader.ReadAsString();
-                reader.Read(); // "id"
-                string id = reader.ReadAsString();
+                Read(reader, Property.Name("location"));
+                string location = ReadAsString(reader);
+                Read(reader, Property.Name("id"));
+                string id = ReadAsString(reader);
                 string cond = string.Join(".", new string[] { location, type, id });
                 conditionsCache.Add(cond);
                 Console.WriteLine(cond);
-                reader.Read(); // EndObject
-                reader.Read(); // StartObject or EndArray
+                Read(reader, EndObject);
+                Read(reader, StartObject, EndArray);
             }
+            Unindent();
         }
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer) {
             DependencyEntry entry = (DependencyEntry)value;
             writer.WritePropertyName("id"); writer.WriteValue(entry.Id);
             writer.WritePropertyName("localization"); serializer.Serialize(writer, entry.Localization);
-            Dictionary<string, List<Check>> pairs = new Dictionary<string, List<Check>> { { "items", entry.ItemsConditions }, { "pokemon", entry.PokemonConditions }, { "trainers", entry.TrainersConditions }, { "trades", entry.TradesConditions} };
+            Dictionary<string, List<Check>> pairs = new Dictionary<string, List<Check>> { { "items", entry.ItemsConditions }, { "pokemon", entry.PokemonConditions }, { "trainers", entry.TrainersConditions }, { "trades", entry.TradesConditions } };
             bool hasOpened = false;
             foreach (KeyValuePair<string, List<Check>> pair in pairs) {
                 if (pair.Value.Count > 0) {
@@ -291,6 +448,14 @@ namespace PokemonTrackerEditor.Model {
     }
 
     class LocationConverter : DependencyEntryConverter {
+        private static readonly Dictionary<string, DependencyCache.NextType> typeMap = new Dictionary<string, DependencyCache.NextType>{
+            { "items", DependencyCache.NextType.ITEM },
+            { "pokemon", DependencyCache.NextType.POKEMON },
+            { "trainers", DependencyCache.NextType.TRAINER },
+            { "trades", DependencyCache.NextType.TRADE },
+            { "locations", DependencyCache.NextType.LOCATION }
+        };
+
         public override bool CanConvert(Type objectType) {
             return objectType == typeof(Location);
         }
@@ -298,7 +463,18 @@ namespace PokemonTrackerEditor.Model {
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer) {
             DependencyCache.nextType = DependencyCache.NextType.LOCATION;
             if (base.ReadJson(reader, objectType, existingValue, serializer) is Location loc) {
-                // do more stuff
+                Indent();
+                ILocationContainer parentContainer = DependencyCache.currentLocationContainer;
+                DependencyCache.currentLocationContainer = loc;
+                while (reader.TokenType != JsonToken.EndObject) {
+                    DependencyCache.nextType = typeMap[StringValue(reader)];
+                    Read(reader, StartArray);
+                    Type t = DependencyCache.nextType == DependencyCache.NextType.LOCATION ? typeof(Location) : typeof(Check);
+                    while (serializer.Deserialize(reader, t) != null) ; // EndArray afterwards
+                    Read(reader, Property.Name(), EndObject); // property name or EndObject
+                }
+                DependencyCache.currentLocationContainer = parentContainer;
+                Unindent();
                 return loc;
             }
             else {
@@ -340,7 +516,8 @@ namespace PokemonTrackerEditor.Model {
         }
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer) {
-            return base.ReadJson(reader, objectType, existingValue, serializer);
+            object o = base.ReadJson(reader, objectType, existingValue, serializer);
+            return o;
         }
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer) {
@@ -350,27 +527,31 @@ namespace PokemonTrackerEditor.Model {
         }
     }
 
-    class StoryItemConditionConverter : JsonConverter {
+    class StoryItemConditionConverter : CustomConverter {
         public override bool CanConvert(Type objectType) {
             return (new List<Type> { typeof(StoryItemCondition), typeof(StoryItemANDCondition), typeof(StoryItemORCondition), typeof(StoryItemNOTCondition), typeof(StoryItemsConditions) }.Contains(objectType));
         }
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer) {
+            base.ReadJson(reader, objectType, existingValue, serializer);
             if (objectType == typeof(StoryItemConditionCollection)) {
-                reader.Read(); // StartArray
+                Indent();
+                Read(reader, StartArray);
                 StoryItemConditionBase conditionBase = serializer.Deserialize(reader, typeof(StoryItemConditionBase)) as StoryItemConditionBase;
                 while (conditionBase != null) {
                     conditionBase = serializer.Deserialize(reader, typeof(StoryItemConditionBase)) as StoryItemConditionBase;
                 }
+                Unindent();
             }
             else if (objectType == typeof(StoryItemConditionBase)) {
-                reader.Read(); // StartObject or EndArray
+                Read(reader, StartObject, EndArray);
+                Indent();
                 if (reader.TokenType == JsonToken.StartObject) {
-                    reader.Read();
-                    string type = reader.Value.ToString();
+                    Read(reader, Property.Name("type"), Property.Name("category"));
+                    string type = StringValue(reader);
                     if (type == "type") {
                         StoryItemConditionCollection collection;
-                        string collectionType = reader.ReadAsString();
+                        string collectionType = ReadAsString(reader);
                         switch (collectionType) {
                             case "AND":
                                 collection = DependencyCache.currentStoryItemCollection.AddANDCollection();
@@ -382,24 +563,29 @@ namespace PokemonTrackerEditor.Model {
                                 collection = DependencyCache.currentStoryItemCollection.AddNOTCollection();
                                 break;
                             default:
+                                Unindent();
                                 return null;
                         }
-                        reader.Read(); // "conditions"
+                        Read(reader, Property.Name("conditions"));
                         StoryItemConditionCollection backup = DependencyCache.currentStoryItemCollection;
                         DependencyCache.currentStoryItemCollection = collection;
                         serializer.Deserialize(reader, typeof(StoryItemConditionCollection));
                         DependencyCache.currentStoryItemCollection = backup;
+                        Read(reader, EndObject);
+                        Unindent();
                         return collection;
                     }
                     else if (type == "category") {
-                        string category = reader.ReadAsString();
-                        reader.Read(); // "id"
-                        string item = reader.ReadAsString();
+                        string category = ReadAsString(reader);
+                        Read(reader, Property.Name("id"));
+                        string item = ReadAsString(reader);
                         StoryItemCondition condition = DependencyCache.currentStoryItemCollection.AddStoryItemCondition(DependencyCache.ruleSet.StoryItems.FindStoryItem(category, item));
-                        reader.Read(); // EndObject
+                        Read(reader, EndObject);
+                        Unindent();
                         return condition;
                     }
                 }
+                Unindent();
             }
             return null;
         }
@@ -434,20 +620,23 @@ namespace PokemonTrackerEditor.Model {
         }
     }
 
-    class LocalizationConverter : JsonConverter {
+    class LocalizationConverter : CustomConverter {
         public override bool CanConvert(Type objectType) {
             return objectType == typeof(Localization);
         }
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer) {
+            base.ReadJson(reader, objectType, existingValue, serializer);
             Localization loc = new Localization(DependencyCache.ruleSet, MainProg.SupportedLanguages.Keys.ToList(), DependencyCache.ruleSet.ActiveLanguages);
-            reader.Read(); // StartObject
-            reader.Read(); // id or EndObject
+            Indent();
+            Read(reader, StartObject);
+            Read(reader, Property.Name(), EndObject);
             while (reader.TokenType != JsonToken.EndObject) {
-                string id = (string)reader.Value;
-                loc[id] = reader.ReadAsString();
-                reader.Read(); // id or EndObject
+                string id = StringValue(reader);
+                loc[id] = ReadAsString(reader);
+                Read(reader, Property.Name(), EndObject);
             }
+            Unindent();
             return loc;
         }
 
@@ -463,16 +652,17 @@ namespace PokemonTrackerEditor.Model {
         }
     }
 
-    class PokedexDataConverter : JsonConverter {
+    class PokedexDataConverter : CustomConverter {
         public override bool CanConvert(Type objectType) {
             return objectType == typeof(PokedexData);
         }
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer) {
+            base.ReadJson(reader, objectType, existingValue, serializer);
             PokedexData pokedex = new PokedexData();
-            reader.Read(); // object key
+            Read(reader, Property.Name(), EndObject);
             while (reader.TokenType != JsonToken.EndObject) {
-                string currentPosition = reader.Value.ToString();
+                string currentPosition = StringValue(reader);
                 switch (currentPosition) {
                     case "overrides":
                         ReadOverrides(reader, pokedex);
@@ -484,7 +674,7 @@ namespace PokemonTrackerEditor.Model {
                         ReadList(reader, pokedex);
                         break;
                 }
-                reader.Read(); // object key or EndObject
+                Read(reader, Property.Name(), EndObject);
             }
             return pokedex;
         }
@@ -503,94 +693,94 @@ namespace PokemonTrackerEditor.Model {
         }
 
         private void ReadList(JsonReader reader, PokedexData pokedex) {
-            reader.Read(); // StartArray
-            reader.Read(); // StartObject or EndArray
+            Read(reader, StartArray);
+            Read(reader, StartObject, EndArray);
             while (reader.TokenType != JsonToken.EndArray) {
                 pokedex.AddPokemon(ReadListEntry(reader));
-                reader.Read(); // StartObject or EndArray
+                Read(reader, StartObject, EndArray);
             }
         }
 
         private PokedexData.Entry ReadListEntry(JsonReader reader) {
             PokedexData.Entry entry = new PokedexData.Entry();
-            reader.Read();
+            Read(reader, Property.Name(), EndObject);
             while (reader.TokenType != JsonToken.EndObject) {
-                string entryKey = reader.Value.ToString();
+                string entryKey = StringValue(reader);
                 switch (entryKey) {
                     case "localization":
                         ReadLocalization(reader, entry);
                         break;
                     case "nr":
-                        entry.nr = reader.ReadAsInt32() ?? -1;
+                        entry.nr = ReadAsInt32(reader) ?? -1;
                         break;
                     case "typeA":
-                        entry.typeA = reader.ReadAsString();
+                        entry.typeA = ReadAsString(reader);
                         break;
                     case "typeB":
-                        entry.typeB = reader.ReadAsString();
+                        entry.typeB = ReadAsString(reader);
                         break;
                 }
-                reader.Read();
+                Read(reader, Property.Name(), EndObject);
             }
             return entry;
         }
 
         private void ReadLocalization(JsonReader reader, PokedexData.Entry entry) {
-            reader.Read(); // StartObject
-            reader.Read(); // localization key
+            Read(reader, StartObject);
+            Read(reader, Property.Name(), EndObject);
             while (reader.TokenType != JsonToken.EndObject) {
-                entry.Localization.Add(reader.Value.ToString(), reader.ReadAsString());
-                reader.Read(); // localization key or EndObject
+                entry.Localization.Add(StringValue(reader), ReadAsString(reader));
+                Read(reader, Property.Name(), EndObject);
             }
         }
 
         private void ReadTemplates(JsonReader reader, PokedexData pokedex) {
-            reader.Read(); // StartObject
-            reader.Read(); // template key
+            Read(reader, StartObject);
+            Read(reader, Property.Name(), EndObject);
             while (reader.TokenType != JsonToken.EndObject) {
-                string templateKey = reader.Value.ToString();
+                string templateKey = StringValue(reader);
                 List<int> templateList = new List<int>();
-                reader.Read(); // StartArray
-                int? index = reader.ReadAsInt32();
+                Read(reader, StartArray);
+                int? index = ReadAsInt32(reader);
                 while (index.HasValue) {
                     templateList.Add(index.Value);
-                    index = reader.ReadAsInt32();
+                    index = ReadAsInt32(reader);
                 }
                 pokedex.Templates.Add(templateKey, templateList);
-                reader.Read(); // template key or EndObject
+                Read(reader, Property.Name(), EndObject);
             }
         }
 
         private void ReadOverrides(JsonReader reader, PokedexData pokedex) {
-            reader.Read(); // StartObject
-            reader.Read(); // override key
+            Read(reader, StartObject);
+            Read(reader, Property.Name());
             while (reader.TokenType != JsonToken.EndObject) {
-                string overrideName = reader.Value.ToString();
+                string overrideName = StringValue(reader);
                 if (overrideName != null) {
                     pokedex.Overrides.Add(overrideName, ReadOverride(reader));
                 }
-                reader.Read(); // override key or EndObject
+                Read(reader, Property.Name(), EndObject);
             }
         }
 
         private Dictionary<string, Dictionary<string, string>> ReadOverride(JsonReader reader) {
-            reader.Read(); // StartObject
-            reader.Read(); // override index
+            Read(reader, StartObject);
+            Read(reader, Property.Name());
             Dictionary<string, Dictionary<string, string>> overrideData = new Dictionary<string, Dictionary<string, string>>();
             while (reader.TokenType != JsonToken.EndObject) {
-                string overrideIndex = reader.Value.ToString();
+                string overrideIndex = StringValue(reader);
                 Dictionary<string, string> overrideIndexData = new Dictionary<string, string>();
                 if (overrideIndex != null) {
-                    reader.Read(); // StartObject
-                    reader.Read(); // override index data
+                    Read(reader, StartObject);
+                    Read(reader, Property.Name(), EndObject);
                     while (reader.TokenType != JsonToken.EndObject) {
-                        string overrideIndexDataKey = reader.Value.ToString();
-                        overrideIndexData.Add(overrideIndexDataKey, reader.ReadAsString());
-                        reader.Read(); // override index data or EndObject
+                        string overrideIndexDataKey = StringValue(reader);
+                        overrideIndexData.Add(overrideIndexDataKey, ReadAsString(reader));
+                        Read(reader, Property.Name(), EndObject);
                     }
                 }
                 overrideData.Add(overrideIndex, overrideIndexData);
-                reader.Read(); // override index or EndObject
+                Read(reader, Property.Name(), EndObject);
             }
             return null;
         }

@@ -24,6 +24,7 @@ namespace PokemonTrackerEditor.Model {
         }
     }
 
+    [JsonArray]
     [JsonConverter(typeof(LocalizationConverter))]
     class Localization {
         private readonly Dictionary<string, LocalizationEntry> translations;

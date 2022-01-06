@@ -319,19 +319,25 @@ namespace PokemonTrackerEditor.Model {
             }
         }
 
-        public bool AddCheck(Check check) {
-            List<Check> list = GetListForCheck(check);
-            if (!list.Contains(check)) {
-                check.Parent = this;
-                list.Add(check);
+        public Check AddCheck(string check, Check.CheckType type) {
+            Check chk = new Check(check, RuleSet, type, this);
+            List<Check> list = GetListForCheck(chk);
+            if (!list.Contains(chk)) {
+                chk.Parent = this;
+                list.Add(chk);
+                foreach (string language in RuleSet.ActiveLanguages) {
+                    chk.SetLanguageActive(language);
+                }
+                RuleSet.MergeCheckToModel(chk);
                 RuleSet.ReportChange();
-                return true;
+                return chk;
             }
-            return false;
+            return null;
         }
 
         public void RemoveCheck(Check check) {
             List<Check> list = GetListForCheck(check);
+            RuleSet.RemoveCheckIter(check);
             check.Cleanup();
             while (list.Remove(check)) ;
             RuleSet.ReportChange();

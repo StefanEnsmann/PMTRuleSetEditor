@@ -79,7 +79,7 @@ namespace PokemonTrackerEditor.Model {
 
         public void MergeLocationToModel(Location location) {
             location.Iter = location.Parent is Location
-                ? treeStore.AppendValues((location.Parent as Location).Iter, location)
+                ? treeStore.AppendValues((location.Parent as Location).LocationIter, location)
                 : treeStore.AppendValues(location);
 
             location.ItemIter = treeStore.AppendValues(location.Iter, new LocationCategory("Items", location, Check.CheckType.ITEM, this));
@@ -94,18 +94,10 @@ namespace PokemonTrackerEditor.Model {
             treeStore.Remove(ref iter);
         }
 
-        public bool MoveUp(DependencyEntry location) {
-            return InterfaceHelpers.SwapItems(locations, (Location)location, true);
-        }
-
-        public bool MoveDown(DependencyEntry location) {
-            return InterfaceHelpers.SwapItems(locations, (Location)location, false);
-        }
-
-        public Check AddCheck(Location location, string check, Check.CheckType type) {
-            Check chk = new Check(check, this, type);
-            TreeIter parentIter;
-            switch (type) {
+        public void MergeCheckToModel(Check check) {
+            TreeIter parentIter = TreeIter.Zero;
+            Location location = check.Parent as Location;
+            switch (check.Type) {
                 case Check.CheckType.ITEM:
                     parentIter = location.ItemIter; break;
                 case Check.CheckType.POKEMON:
@@ -114,28 +106,21 @@ namespace PokemonTrackerEditor.Model {
                     parentIter = location.TradeIter; break;
                 case Check.CheckType.TRAINER:
                     parentIter = location.TrainerIter; break;
-                default:
-                    return null;
             }
-            if (location.AddCheck(chk)) {
-                chk.Iter = treeStore.AppendValues(parentIter, chk);
-                foreach (string language in activeLanguages) {
-                    chk.SetLanguageActive(language);
-                }
-                HasChanged = true;
-                return chk;
-            }
-            else {
-                chk.Cleanup();
-                return null;
-            }
+            check.Iter = treeStore.AppendValues(parentIter, check);
         }
 
-        public void RemoveCheck(Location location, Check check) {
+        public void RemoveCheckIter(Check check) {
             TreeIter iter = check.Iter;
             treeStore.Remove(ref iter);
-            location.RemoveCheck(check);
-            HasChanged = true;
+        }
+
+        public bool MoveUp(DependencyEntry location) {
+            return InterfaceHelpers.SwapItems(locations, (Location)location, true);
+        }
+
+        public bool MoveDown(DependencyEntry location) {
+            return InterfaceHelpers.SwapItems(locations, (Location)location, false);
         }
 
         public void SetLanguageActive(string language, bool active = true) {
