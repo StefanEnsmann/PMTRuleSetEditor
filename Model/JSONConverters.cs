@@ -209,7 +209,7 @@ namespace PokemonTrackerEditor.Model {
             Read(reader, StartArray);
             int? idx = ReadAsInt32(reader);
             while (idx.HasValue) {
-                MainProg.Pokedex.List[idx.Value].available = true;
+                MainProg.Pokedex.List[idx.Value - 1].available = true;
                 idx = ReadAsInt32(reader);
             }
             Unindent();
