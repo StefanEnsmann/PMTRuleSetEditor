@@ -55,10 +55,20 @@ namespace PokemonTrackerEditor.View {
             DependencyEntryBase current = (DependencyEntryBase)model.GetValue(iter, 0);
             if (current != null) {
                 if (current is LocationCategory locCat) {
-                    return locCat.Type == type || current is LocationCategoryForLocations;
+                    if (current is LocationCategoryForLocations locCatLoc) {
+                        foreach (Location loc in locCatLoc.Parent.Locations) {
+                            if (loc.HasChecksOfType(type)) {
+                                return true;
+                            }
+                        }
+                        return false;
+                    }
+                    else {
+                        return locCat.Type == type && locCat.Parent.GetListForCheckType(type).Count > 0;
+                    }
                 }
-                else if (current is Location) {
-                    return true;
+                else if (current is Location loc) {
+                    return loc.HasChecksOfType(type);
                 }
                 else if (current is Check check) {
                     return check.CheckType == type;

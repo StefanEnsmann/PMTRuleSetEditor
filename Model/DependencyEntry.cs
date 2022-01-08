@@ -243,6 +243,20 @@ namespace PokemonTrackerEditor.Model {
             base.Cleanup();
         }
 
+        public bool HasChecksOfType(Check.Type type) {
+            if (GetListForCheckType(type).Count > 0) {
+                return true;
+            }
+            else {
+                foreach (Location loc in Locations) {
+                    if (loc.HasChecksOfType(type)) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+        }
+
         public void ChildWasRemoved(DependencyEntry entry) {
             if (entry is Location location) {
                 Locations.Remove(location);

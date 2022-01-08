@@ -129,6 +129,7 @@ namespace PokemonTrackerEditor.Model {
             using (StreamReader reader = new StreamReader(filepath)) {
                 ret = (RuleSet)serializer.Deserialize(reader, typeof(RuleSet));
             }
+            ret.HasChanged = false;
             return ret;
         }
     }
