@@ -28,6 +28,21 @@ namespace PokemonTrackerEditor.Model {
             }
         }
 
+        public void Cleanup() {
+            ListStore.Clear();
+            ListStore.Dispose();
+            ListStore = null;
+
+            foreach (Entry entry in List) {
+                entry.Cleanup();
+            }
+            List.Clear();
+            List = null;
+
+            Pokedex = null;
+            Rules = null;
+        }
+
         public class Entry {
             public int Nr { get; set; }
             public bool Available { get; set; }
@@ -38,6 +53,10 @@ namespace PokemonTrackerEditor.Model {
                 Rules = rules;
                 Nr = nr;
                 Available = false;
+            }
+
+            public void Cleanup() {
+                Rules = null;
             }
         }
     }

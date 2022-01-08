@@ -18,7 +18,8 @@ namespace PokemonTrackerEditor.Model {
                 return "";
             }
             else if (container is Location location) {
-                return location.Parent.LocationPath() + "." + location.Id;
+                string parentPath = location.Parent.LocationPath();
+                return  parentPath + (parentPath.Length > 0 ? "." : "") + location.Id;
             }
             else {
                 return null;

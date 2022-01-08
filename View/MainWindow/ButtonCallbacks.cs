@@ -186,10 +186,10 @@ namespace PokemonTrackerEditor.View.MainWindow {
             StoryItems storyItems = window.Main.Rules.StoryItems;
             string template = "new_story_item_category_";
             int value = 0;
-            StoryItemCategory newCat;
-            while ((newCat = storyItems.AddStoryItemCategory(template + value)) == null) {
+            while (!storyItems.CategoryNameAvailable(template + value)) {
                 ++value;
             }
+            StoryItemCategory newCat = storyItems.AddStoryItemCategory(template + value);
             ShowAndSelect(window.StoryItemsTreeView, newCat.Iter);
         }
 
@@ -199,10 +199,10 @@ namespace PokemonTrackerEditor.View.MainWindow {
                 StoryItemCategory cat = currentSelection is StoryItemCategory category ? category : ((StoryItem)currentSelection).Category;
                 string template = "new_story_item_";
                 int value = 0;
-                StoryItem newItem;
-                while ((newItem = cat.AddStoryItem(template + value)) == null) {
+                while (!cat.StoryItemNameAvailable(template + value)) {
                     ++value;
                 }
+                StoryItem newItem = cat.AddStoryItem(template + value);
                 ShowAndSelect(window.StoryItemsTreeView, newItem.Iter);
             }
         }

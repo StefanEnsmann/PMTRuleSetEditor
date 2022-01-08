@@ -52,6 +52,7 @@ namespace PokemonTrackerEditor.View.MainWindow {
         public void UpdateLocationEditorSelection(DependencyEntry entry) {
             CurrentLocationSelection = entry;
             if (entry != null) {
+                entry.Localization.Model.Refilter();
                 locationLocalizationTreeView.Model = entry.Localization.Model;
                 locationConditionsTreeViews["Items"].Model = entry.ItemsModel;
                 locationConditionsTreeViews["Pokémon"].Model = entry.PokemonModel;
@@ -71,6 +72,7 @@ namespace PokemonTrackerEditor.View.MainWindow {
             storyItemsURLEntry.IsEditable = false;
             storyItemsURLEntry.Text = "";
             if (storyItemBase != null) {
+                storyItemBase.Localization.Model.Refilter();
                 storyItemsLocalizationTreeView.Model = storyItemBase.Localization.Model;
                 if (storyItemBase is StoryItem) {
                     storyItemsURLEntry.IsEditable = true;
@@ -194,7 +196,11 @@ namespace PokemonTrackerEditor.View.MainWindow {
             foreach (KeyValuePair<string, string> languages in MainProg.SupportedLanguages) {
                 CheckButton chkBtn = CreateLanguageCheckButton(languages.Key, languages.Value);
                 languageButtons[languages.Key] = chkBtn;
-                chkBtn.Toggled += (object sender, EventArgs args) => { Main.Rules.SetLanguageActive(languages.Key, ((CheckButton)sender).Active); locationLocalizationTreeView.QueueDraw(); };
+                chkBtn.Toggled += (object sender, EventArgs args) => {
+                    Main.Rules.SetLanguageActive(languages.Key, ((CheckButton)sender).Active);
+                    UpdateLocationEditorSelection(CurrentLocationSelection);
+                    UpdateStoryItemEditorSelection(CurrentStoryItemSelection);
+                };
                 languagesTable.Attach(chkBtn, col, col + 1, row, row + 1);
                 col = (col + 1) % 3;
                 if (col == 0) {

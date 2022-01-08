@@ -233,6 +233,9 @@ namespace PokemonTrackerEditor.Model {
         }
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer) {
             RuleSet ruleSet = (RuleSet)value;
+            DependencyCache.Init();
+            DependencyCache.ruleSet = ruleSet;
+
             writer.WriteStartObject();
 
             writer.WritePropertyName("name"); writer.WriteValue(ruleSet.Name ?? "");
@@ -659,8 +662,8 @@ namespace PokemonTrackerEditor.Model {
             Localization loc = (Localization)value;
             writer.WriteStartObject();
             Formatting writerBackup = writer.Formatting; writer.Formatting = Formatting.None;
-            foreach (KeyValuePair<string, LocalizationEntry> pair in loc.Translations) {
-                writer.WritePropertyName(pair.Key); writer.WriteValue(pair.Value.Value);
+            foreach (string language in DependencyCache.ruleSet.ActiveLanguages) {
+                writer.WritePropertyName(language); writer.WriteValue(loc[language]);
             }
             writer.WriteEndObject();
             writer.Formatting = writerBackup;

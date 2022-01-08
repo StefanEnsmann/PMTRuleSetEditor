@@ -123,7 +123,7 @@ namespace PokemonTrackerEditor.Model {
                 tree.Dispose();
                 conditions.Clear();
             }
-            StoryItemsConditions.Cleanup();
+            StoryItemsConditions.InvokeRemove();
             Localization.Cleanup();
             Parent = null;
         }

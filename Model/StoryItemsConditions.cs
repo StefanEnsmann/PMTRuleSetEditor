@@ -14,7 +14,7 @@ namespace PokemonTrackerEditor.Model {
         virtual public string Id { get; protected set; }
         public TreeIter Iter { get; set; }
 
-        public StoryItemConditionCollection Container { get; private set; }
+        public virtual StoryItemConditionCollection Container { get; private set; }
 
         public StoryItemConditionBase(StoryItemConditionCollection container) {
             Container = container;
@@ -63,16 +63,12 @@ namespace PokemonTrackerEditor.Model {
             StoryItem.AddDependency(this);
         }
 
-        public override void InvokeRemove() {
-            StoryItem.RemoveDependency(this);
-            base.InvokeRemove();
-        }
-
         public void StoryItemWasRemoved() {
             base.InvokeRemove();
         }
 
         public override void Cleanup() {
+            StoryItem.RemoveDependency(this);
             StoryItem = null;
             base.Cleanup();
         }
@@ -103,6 +99,17 @@ namespace PokemonTrackerEditor.Model {
         public StoryItemConditionCollection(string id, StoryItemConditionCollection container) : base(container) {
             Id = id;
             Conditions = new List<StoryItemConditionBase>();
+        }
+
+        public override void Cleanup() {
+            foreach (StoryItemConditionBase cond in Conditions) {
+                cond.Cleanup();
+            }
+
+            Conditions.Clear();
+            Conditions = null;
+
+            base.Cleanup();
         }
 
         public bool ConditionNameAvailable(string name) {
@@ -151,7 +158,7 @@ namespace PokemonTrackerEditor.Model {
                 }
                 Conditions.Add(cond);
                 InsertConditionToTree(cond, Iter);
-                Container.Rules.ReportChange();
+                Rules.ReportChange();
                 return cond;
             }
             else {
@@ -172,7 +179,9 @@ namespace PokemonTrackerEditor.Model {
         }
 
         public void ChildWasRemoved(StoryItemConditionBase item) {
-            Conditions.Remove(item);
+            if (item != this) {
+                Conditions.Remove(item);
+            }
         }
 
         virtual public void InsertConditionToTree(StoryItemConditionBase cond, TreeIter iter) {
@@ -181,17 +190,6 @@ namespace PokemonTrackerEditor.Model {
 
         virtual public void RemoveConditionFromTree(StoryItemConditionBase cond) {
             Container.RemoveConditionFromTree(cond);
-        }
-
-        public override void Cleanup() {
-            foreach (StoryItemConditionBase cond in Conditions) {
-                cond.Cleanup();
-            }
-
-            Conditions.Clear();
-            Conditions = null;
-
-            base.Cleanup();
         }
     }
 
@@ -226,6 +224,7 @@ namespace PokemonTrackerEditor.Model {
         public TreeStore TreeStore { get; private set; }
         public TreeModelSort Model { get; private set; }
         public override RuleSet Rules => Entry.Rules;
+        public override StoryItemConditionCollection Container => this;
 
         public StoryItemsConditions(DependencyEntry entry) : base("Conditions", null) {
             Entry = entry;

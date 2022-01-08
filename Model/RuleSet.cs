@@ -36,11 +36,21 @@ namespace PokemonTrackerEditor.Model {
             foreach (Location location in Locations) {
                 location.Cleanup();
             }
+            Pokedex.Cleanup();
+            Pokedex = null;
+
             Locations.Clear();
+            Locations = null;
+
             StoryItems.Cleanup();
+            StoryItems = null;
+
             ActiveLanguages.Clear();
+            ActiveLanguages = null;
+
             Model.Clear();
             Model.Dispose();
+            Model = null;
         }
 
         public void MergeLocationToModel(Location location) {
@@ -91,7 +101,7 @@ namespace PokemonTrackerEditor.Model {
             if (active && !ActiveLanguages.Contains(language)) {
                 ActiveLanguages.Add(language);
             }
-            else {
+            else if (!active && ActiveLanguages.Contains(language)) {
                 ActiveLanguages.Remove(language);
             }
         }
@@ -101,6 +111,7 @@ namespace PokemonTrackerEditor.Model {
         }
 
         public void SaveToFile(string filepath) {
+            File.Copy(filepath, filepath + ".bak", true);
             ActiveLanguages.Sort();
             JsonSerializer serializer = JsonSerializer.Create(new JsonSerializerSettings() {
                 ReferenceLoopHandling = ReferenceLoopHandling.Serialize

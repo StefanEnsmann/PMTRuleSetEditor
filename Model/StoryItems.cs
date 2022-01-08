@@ -130,7 +130,7 @@ namespace PokemonTrackerEditor.Model {
         }
 
         public bool StoryItemNameAvailable(string name) {
-            return FindStoryItem(name) != null;
+            return FindStoryItem(name) == null;
         }
 
         public StoryItem AddStoryItem(string storyItem) {
@@ -213,6 +213,7 @@ namespace PokemonTrackerEditor.Model {
             if (CategoryNameAvailable(category)) {
                 StoryItemCategory newCat = new StoryItemCategory(category, this);
                 Categories.Add(newCat);
+                MergeItemToModel(newCat);
                 Rules.ReportChange();
                 return newCat;
             }
