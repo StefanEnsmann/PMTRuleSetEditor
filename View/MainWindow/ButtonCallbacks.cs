@@ -11,7 +11,7 @@ using Gtk;
 namespace PokemonTrackerEditor.View.MainWindow {
     class ButtonCallbacks {
         private static string GetNewFile(MainWindow window) {
-            string selectedFile = MainProg.CurrentFile;
+            string selectedFile = window.Main.CurrentFile;
             if (selectedFile == null) {
                 selectedFile = CustomDialog.SelectRuleSetFile(window, "Select file path", true);
             }
@@ -19,12 +19,11 @@ namespace PokemonTrackerEditor.View.MainWindow {
         }
 
         private static bool AskForFileSave(MainWindow window) {
-            RuleSet ruleSet = MainProg.RuleSet;
             bool loadFile = true;
-            if (ruleSet != null && ruleSet.HasChanged) {
+            if (window.Main.Rules != null && window.Main.Rules.HasChanged) {
                 CustomDialog.ButtonType response = CustomDialog.YNCDialog(window, "There are changes to this file. Do you want to save?", "Save changes?");
                 if (response == CustomDialog.ButtonType.YES) {
-                    ruleSet.SaveToFile(GetNewFile(window));
+                    window.Main.Rules.SaveToFile(GetNewFile(window));
                 }
                 else if (response == CustomDialog.ButtonType.CANCEL) {
                     loadFile = false;
@@ -34,7 +33,7 @@ namespace PokemonTrackerEditor.View.MainWindow {
         }
         public static void OnNewFileClick(MainWindow window) {
             if (AskForFileSave(window)) {
-                window.SetRuleSet(MainProg.NewRuleSet(), null);
+                window.SetRuleSet(window.Main.NewRuleSet(), null);
             }
         }
 
@@ -42,18 +41,17 @@ namespace PokemonTrackerEditor.View.MainWindow {
             if (AskForFileSave(window)) {
                 string selectedFile = CustomDialog.SelectRuleSetFile(window, "Select rule set file", false);
                 if (selectedFile != null) {
-                    window.SetRuleSet(MainProg.LoadRuleSet(selectedFile), selectedFile);
+                    window.SetRuleSet(window.Main.LoadRuleSet(selectedFile), selectedFile);
                 }
             }
         }
 
         public static void OnSaveFileClick(MainWindow window) {
-            RuleSet ruleSet = MainProg.RuleSet;
-            if (ruleSet != null) {
+            if (window.Main.Rules != null) {
                 string saveFile = GetNewFile(window);
                 if (saveFile != null) {
-                    ruleSet.SaveToFile(saveFile);
-                    MainProg.CurrentFile = saveFile;
+                    window.Main.Rules.SaveToFile(saveFile);
+                    window.Main.CurrentFile = saveFile;
                 }
                 else {
                     CustomDialog.MessageDialog(window, "No file selected! Rule set was not saved.", "Warning");
@@ -63,7 +61,7 @@ namespace PokemonTrackerEditor.View.MainWindow {
 
         public static void OnAddLocationClick(MainWindow window, bool root=true) {
             DependencyEntry currentSelection = window.CurrentLocationSelection;
-            ILocationContainer locationContainer = root || currentSelection == null ? MainProg.RuleSet : currentSelection is Location location ? location : ((Check)currentSelection).Parent;
+            ILocationContainer locationContainer = root || currentSelection == null ? window.Main.Rules : currentSelection is Location location ? location : ((Check)currentSelection).Parent;
             string template = "new_location_";
             int value = 0;
             Location newLoc;
@@ -80,8 +78,7 @@ namespace PokemonTrackerEditor.View.MainWindow {
             view.Selection.SelectIter(iter);
         }
 
-        public static void OnAddCheckClick(MainWindow window, Check.CheckType type) {
-            RuleSet ruleSet = MainProg.RuleSet;
+        public static void OnAddCheckClick(MainWindow window, Check.Type type) {
             DependencyEntry currentSelection = window.CurrentLocationSelection;
             if (window.CurrentLocationSelection != null) {
                 Location loc = currentSelection is Location location ? location : ((Check)currentSelection).Parent as Location;
@@ -96,20 +93,14 @@ namespace PokemonTrackerEditor.View.MainWindow {
         }
 
         public static void OnRemoveLocationOrCheckClick(MainWindow window) {
-            RuleSet ruleSet = MainProg.RuleSet;
             if (window.CurrentLocationSelection != null) {
-                if (window.CurrentLocationSelection is Location loc) {
-                    ruleSet.RemoveLocation(loc);
-                }
-                else if (window.CurrentLocationSelection is Check check) {
-                    (check.Parent as Location).RemoveCheck(check);
-                }
+                window.CurrentLocationSelection.InvokeRemove();
             }
         }
 
-        public static void OnAddConditionClick(MainWindow window, Check.CheckType type) {
+        public static void OnAddConditionClick(MainWindow window, Check.Type type) {
             if (window.CurrentLocationSelection != null) {
-                Check selectedCheck = CustomDialog.SelectCheck(window, "Select check", MainProg.RuleSet.Model, type);
+                Check selectedCheck = CustomDialog.SelectCheck(window, "Select check", window.Main.Rules.Model, type);
                 if (selectedCheck != null) {
                     window.CurrentLocationSelection.AddCondition(selectedCheck);
                 }
@@ -153,7 +144,7 @@ namespace PokemonTrackerEditor.View.MainWindow {
 
         public static void OnAddStoryItemConditionClick(MainWindow window, TreeView treeView) {
             if (window.CurrentLocationSelection != null) {
-                StoryItem storyItem = CustomDialog.SelectStoryItem(window, "Select story item", MainProg.RuleSet.StoryItems.Model);
+                StoryItem storyItem = CustomDialog.SelectStoryItem(window, "Select story item", window.Main.Rules.StoryItems.Model);
                 if (storyItem != null) {
                     StoryItemConditionCollection collection = GetSelectedStoryItemConditionContainer(window, treeView);
                     collection.AddStoryItemCondition(storyItem);
@@ -185,17 +176,14 @@ namespace PokemonTrackerEditor.View.MainWindow {
         public static void OnRemoveStoryItemConditionClick(MainWindow window, TreeView treeView) {
             if (window.CurrentLocationSelection != null) {
                 StoryItemConditionBase selection = GetSelectedStoryItemCondition(window, treeView);
-                if (selection is StoryItemsConditions conditions) {
-                    conditions.RemoveAll();
-                }
-                else {
-                    selection.Container.RemoveStoryItemCondition(selection);
+                if (!(selection is StoryItemsConditions)) {
+                    selection.InvokeRemove();
                 }
             }
         }
 
         public static void OnAddStoryItemCategoryClick(MainWindow window) {
-            StoryItems storyItems = MainProg.RuleSet.StoryItems;
+            StoryItems storyItems = window.Main.Rules.StoryItems;
             string template = "new_story_item_category_";
             int value = 0;
             StoryItemCategory newCat;
@@ -222,43 +210,36 @@ namespace PokemonTrackerEditor.View.MainWindow {
         public static void OnRemoveStoryItemClick(MainWindow window) {
             StoryItemBase currentSelection = window.CurrentStoryItemSelection;
             if (window.CurrentStoryItemSelection != null) {
-                if (currentSelection is StoryItemCategory category) {
-                    MainProg.RuleSet.StoryItems.RemoveStoryItemCategory(category);
-                    window.CurrentStoryItemSelection = null;
-                }
-                else {
-                    StoryItem storyItem = currentSelection as StoryItem;
-                    storyItem.Category.RemoveStoryItem(storyItem);
-                }
+                currentSelection.InvokeRemove();
             }
         }
 
         public static void OnMoveUpStoryItemClick(MainWindow window) {
             if (window.CurrentStoryItemSelection is StoryItem storyItem) {
-                MoveSelection(MainProg.RuleSet.StoryItems.Model, (StoryItem)window.CurrentStoryItemSelection, true, storyItem.Category);
+                MoveSelection(window.Main.Rules.StoryItems.Model, (StoryItem)window.CurrentStoryItemSelection, true, storyItem.Category);
             }
             else if (window.CurrentStoryItemSelection is StoryItemCategory) {
-                MoveSelection(MainProg.RuleSet.StoryItems.Model, (StoryItemCategory)window.CurrentStoryItemSelection, true, MainProg.RuleSet.StoryItems);
+                MoveSelection(window.Main.Rules.StoryItems.Model, (StoryItemCategory)window.CurrentStoryItemSelection, true, window.Main.Rules.StoryItems);
             }
         }
 
         public static void OnMoveDownStoryItemClick(MainWindow window) {
             if (window.CurrentStoryItemSelection is StoryItem storyItem) {
-                MoveSelection(MainProg.RuleSet.StoryItems.Model, (StoryItem)window.CurrentStoryItemSelection, false, storyItem.Category);
+                MoveSelection(window.Main.Rules.StoryItems.Model, (StoryItem)window.CurrentStoryItemSelection, false, storyItem.Category);
             }
             else if (window.CurrentStoryItemSelection is StoryItemCategory) {
-                MoveSelection(MainProg.RuleSet.StoryItems.Model, (StoryItemCategory)window.CurrentStoryItemSelection, false, MainProg.RuleSet.StoryItems);
+                MoveSelection(window.Main.Rules.StoryItems.Model, (StoryItemCategory)window.CurrentStoryItemSelection, false, window.Main.Rules.StoryItems);
             }
         }
 
         public static void OnMoveUpLocationClick(MainWindow window) {
-            IMovableItems<DependencyEntry> parent = window.CurrentLocationSelection.Parent ?? MainProg.RuleSet;
-            MoveSelection(MainProg.RuleSet.Model, window.CurrentLocationSelection, true, parent);
+            IMovableItems<DependencyEntry> parent = window.CurrentLocationSelection.Parent ?? window.Main.Rules;
+            MoveSelection(window.Main.Rules.Model, window.CurrentLocationSelection, true, parent);
         }
 
         public static void OnMoveDownLocationClick(MainWindow window) {
-            IMovableItems<DependencyEntry> parent = window.CurrentLocationSelection.Parent ?? MainProg.RuleSet;
-            MoveSelection(MainProg.RuleSet.Model, window.CurrentLocationSelection, false, parent);
+            IMovableItems<DependencyEntry> parent = window.CurrentLocationSelection.Parent ?? window.Main.Rules;
+            MoveSelection(window.Main.Rules.Model, window.CurrentLocationSelection, false, parent);
         }
 
         private static void MoveSelection<T>(TreeStore model, T movable, bool up, IMovableItems<T> parent) where T : IMovable {
@@ -285,12 +266,12 @@ namespace PokemonTrackerEditor.View.MainWindow {
         public static void OnApplyPokedexTemplateClick(MainWindow window, string template) {
             if (template != null) {
                 foreach (int idx in MainProg.Pokedex.Templates[template]) {
-                    MainProg.Pokedex.List[idx - 1].available = true;
+                    window.Main.Rules.Pokedex.List[idx - 1].Available = true;
                 }
             }
             else {
-                foreach (PokedexData.Entry entry in MainProg.Pokedex.List) {
-                    entry.available = false;
+                foreach (PokedexRules.Entry entry in window.Main.Rules.Pokedex.List) {
+                    entry.Available = false;
                 }
             }
             window.pokedexTreeView.QueueDraw();

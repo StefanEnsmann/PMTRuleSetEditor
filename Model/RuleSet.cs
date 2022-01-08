@@ -10,149 +10,89 @@ using Gtk;
 
 namespace PokemonTrackerEditor.Model {
     [JsonConverter(typeof(RuleSetConverter))]
-    class RuleSet : ILocationContainer {
+    public class RuleSet : ILocationContainer {
         public string Name { get; set; }
         public string Game { get; set; }
-
-        private readonly TreeStore treeStore;
-        public TreeStore Model => treeStore;
-        private readonly List<Location> locations;
-        public List<Location> Locations => new List<Location>(locations);
+        public TreeStore Model { get; private set; }
+        public List<Location> Locations { get; private set; }
         public StoryItems StoryItems { get; private set; }
-        private readonly List<string> activeLanguages;
-        public List<string> ActiveLanguages => new List<string>(activeLanguages);
+        public PokedexRules Pokedex { get; private set; }
+
+        public List<string> ActiveLanguages { get; private set; }
         public bool HasChanged { get; private set; }
 
-        public ILocationContainer Parent { get { return null; } set { } }
+        public RuleSet Rules => this;
 
         public RuleSet() {
-            treeStore = new TreeStore(typeof(DependencyEntryBase));
-            locations = new List<Location>();
+            Pokedex = new PokedexRules(MainProg.Pokedex, this);
+            Model = new TreeStore(typeof(DependencyEntryBase));
+            Locations = new List<Location>();
             StoryItems = new StoryItems(this);
-            activeLanguages = new List<string>();
+            ActiveLanguages = new List<string>();
             HasChanged = false;
         }
 
         public void Cleanup() {
-            foreach (Location location in locations) {
+            foreach (Location location in Locations) {
                 location.Cleanup();
             }
-            locations.Clear();
+            Locations.Clear();
             StoryItems.Cleanup();
-            activeLanguages.Clear();
-            treeStore.Clear();
-        }
-
-        public bool LocationNameAvailable(string location) {
-            if (!(new string[] { "items", "pokemon", "trades", "trainers" }).Contains(location)) {
-                bool available = true;
-                Location loc = new Location(location, this);
-                if (locations.Contains(loc)) {
-                    available = false;
-                }
-                loc.Cleanup();
-                return available;
-            }
-            return false;
-        }
-
-        public Location AddLocation(string location) {
-            Location loc = new Location(location, this, this);
-            if (!locations.Contains(loc)) {
-                locations.Add(loc);
-                MergeLocationToModel(loc);
-                HasChanged = true;
-                return loc;
-            }
-            else {
-                loc.Cleanup();
-                return null;
-            }
-        }
-
-        public void RemoveLocation(Location location) {
-            locations.Remove(location);
-            RemoveLocationIter(location);
-            location.Cleanup();
-            HasChanged = true;
+            ActiveLanguages.Clear();
+            Model.Clear();
+            Model.Dispose();
         }
 
         public void MergeLocationToModel(Location location) {
             location.Iter = location.Parent is Location
-                ? treeStore.AppendValues((location.Parent as Location).LocationIter, location)
-                : treeStore.AppendValues(location);
+                ? Model.AppendValues((location.Parent as Location).LocationIter, location)
+                : Model.AppendValues(location);
 
-            location.ItemIter = treeStore.AppendValues(location.Iter, new LocationCategory("Items", location, Check.CheckType.ITEM, this));
-            location.PokemonIter = treeStore.AppendValues(location.Iter, new LocationCategory("Pokémon", location, Check.CheckType.POKEMON, this));
-            location.TradeIter = treeStore.AppendValues(location.Iter, new LocationCategory("Trades", location, Check.CheckType.TRADE, this));
-            location.TrainerIter = treeStore.AppendValues(location.Iter, new LocationCategory("Trainers", location, Check.CheckType.TRAINER, this));
-            location.LocationIter = treeStore.AppendValues(location.Iter, new LocationCategoryForLocations("Locations", location, this));
-        }
-
-        public void RemoveLocationIter(Location location) {
-            TreeIter iter = location.Iter;
-            treeStore.Remove(ref iter);
-        }
-
-        public DependencyEntry ResolvePath(string path) {
-            return ResolvePath(path.Split('.').ToList());
-        }
-
-        public DependencyEntry ResolvePath(List<string> path) {
-            if (path.Count == 0) {
-                return null;
-            }
-            else {
-                string segment = path.First();
-                path.RemoveAt(0);
-                foreach (Location loc in locations) {
-                    if (loc.Id.Equals(segment)) {
-                        return loc.ResolvePath(path);
-                    }
-                }
-                return null;
-            }
+            location.ItemIter = Model.AppendValues(location.Iter, new LocationCategory("Items", location, Check.Type.ITEM));
+            location.PokemonIter = Model.AppendValues(location.Iter, new LocationCategory("Pokémon", location, Check.Type.POKEMON));
+            location.TradeIter = Model.AppendValues(location.Iter, new LocationCategory("Trades", location, Check.Type.TRADE));
+            location.TrainerIter = Model.AppendValues(location.Iter, new LocationCategory("Trainers", location, Check.Type.TRAINER));
+            location.LocationIter = Model.AppendValues(location.Iter, new LocationCategoryForLocations("Locations", location));
         }
 
         public void MergeCheckToModel(Check check) {
             TreeIter parentIter = TreeIter.Zero;
             Location location = check.Parent as Location;
-            switch (check.Type) {
-                case Check.CheckType.ITEM:
+            switch (check.CheckType) {
+                case Check.Type.ITEM:
                     parentIter = location.ItemIter; break;
-                case Check.CheckType.POKEMON:
+                case Check.Type.POKEMON:
                     parentIter = location.PokemonIter; break;
-                case Check.CheckType.TRADE:
+                case Check.Type.TRADE:
                     parentIter = location.TradeIter; break;
-                case Check.CheckType.TRAINER:
+                case Check.Type.TRAINER:
                     parentIter = location.TrainerIter; break;
             }
-            check.Iter = treeStore.AppendValues(parentIter, check);
+            check.Iter = Model.AppendValues(parentIter, check);
         }
 
-        public void RemoveCheckIter(Check check) {
-            TreeIter iter = check.Iter;
-            treeStore.Remove(ref iter);
+        public void RemoveDependencyIter(TreeIter iter) {
+            Model.Remove(ref iter);
+        }
+
+        public void ChildWasRemoved(DependencyEntry entry) {
+            Locations.Remove(entry as Location);
         }
 
         public bool MoveUp(DependencyEntry location) {
-            return InterfaceHelpers.SwapItems(locations, (Location)location, true);
+            return InterfaceHelpers.SwapItems(Locations, (Location)location, true);
         }
 
         public bool MoveDown(DependencyEntry location) {
-            return InterfaceHelpers.SwapItems(locations, (Location)location, false);
+            return InterfaceHelpers.SwapItems(Locations, (Location)location, false);
         }
 
         public void SetLanguageActive(string language, bool active = true) {
-            foreach (Location loc in locations) {
-                loc.SetLanguageActive(language, active);
-            }
-            StoryItems.SetLanguageActive(language, active);
-            if (active && !activeLanguages.Contains(language)) {
-                activeLanguages.Add(language);
+            if (active && !ActiveLanguages.Contains(language)) {
+                ActiveLanguages.Add(language);
             }
             else {
-                activeLanguages.Remove(language);
+                ActiveLanguages.Remove(language);
             }
         }
 
@@ -161,7 +101,7 @@ namespace PokemonTrackerEditor.Model {
         }
 
         public void SaveToFile(string filepath) {
-            activeLanguages.Sort();
+            ActiveLanguages.Sort();
             JsonSerializer serializer = JsonSerializer.Create(new JsonSerializerSettings() {
                 ReferenceLoopHandling = ReferenceLoopHandling.Serialize
             });

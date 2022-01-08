@@ -8,69 +8,65 @@ using Newtonsoft.Json;
 using Gtk;
 
 namespace PokemonTrackerEditor.Model {
-    interface ILocalizable {
+    public interface ILocalizable {
         Localization Localization { get; set; }
+        RuleSet Rules { get; }
     }
 
-    class LocalizationEntry {
+    public class LocalizationEntry {
         public string Code { get; private set; }
         public string Value { get; set; }
 
         public TreeIter Iter { get; set; }
 
-        public LocalizationEntry(string code, string value) {
+        public LocalizationEntry(string code, string value="") {
             Code = code;
             Value = value;
         }
     }
 
-    [JsonArray]
     [JsonConverter(typeof(LocalizationConverter))]
-    class Localization {
-        private readonly Dictionary<string, LocalizationEntry> translations;
-        public Dictionary<string, string> Translations {
-            get {
-                Dictionary<string, string> trans = new Dictionary<string, string>();
-                foreach (string language in RuleSet.ActiveLanguages) {
-                    trans.Add(language, translations[language].Value);
-                }
-                return trans;
-            }
-        }
+    public class Localization {
+        public Dictionary<string, LocalizationEntry> Translations { get; private set; }
         private readonly TreeStore treeStore;
-        public TreeModelSort Model { get; private set; }
-        public RuleSet RuleSet { get; private set; }
+        private readonly TreeModelSort treeSort;
+        private ILocalizable localizable;
+        public TreeModelFilter Model { get; private set; }
 
-        public Localization(RuleSet ruleSet, List<string> languages, List<string> activeLanguages, Dictionary<string, string> translations = null) {
-            this.translations = new Dictionary<string, LocalizationEntry>();
-            RuleSet = ruleSet;
+        public Localization(ILocalizable localizable) {
+            this.localizable = localizable;
+            Translations = new Dictionary<string, LocalizationEntry>();
             treeStore = new TreeStore(typeof(LocalizationEntry));
-            Model = new TreeModelSort(treeStore);
-            foreach (string language in languages) {
-                string v = translations == null ? "" : translations[language];
-                LocalizationEntry entry = new LocalizationEntry(language, v);
-                this.translations.Add(language, entry);
-                entry.Iter = activeLanguages.Contains(language) ? treeStore.AppendValues(entry) : TreeIter.Zero;
+            foreach (string language in MainProg.SupportedLanguages.Keys) {
+                LocalizationEntry entry = new LocalizationEntry(language);
+                Translations.Add(language, entry);
+                entry.Iter = treeStore.AppendValues(entry);
             }
+            treeSort = new TreeModelSort(treeStore);
+            Model = new TreeModelFilter(treeSort, null) {
+                VisibleFunc = new TreeModelFilterVisibleFunc((TreeModel m, TreeIter i) => FilterLanguageList(m, i, localizable.Rules))
+            };
+        }
+
+        private static bool FilterLanguageList(TreeModel model, TreeIter iter, RuleSet rules) {
+            LocalizationEntry current = (LocalizationEntry)model.GetValue(iter, 0);
+            return rules.ActiveLanguages.Contains(current.Code);
         }
 
         public string this[string key] {
-            get => translations[key].Value;
+            get => Translations[key].Value;
             set {
-                translations[key].Value = value;
+                Translations[key].Value = value;
             }
         }
 
-        public void SetLanguageActive(string languageCode, bool active = true) {
-            LocalizationEntry entry = translations[languageCode];
-            if (entry.Iter.Equals(TreeIter.Zero) && active) {
-                entry.Iter = treeStore.AppendValues(entry);
-            }
-            else if (!entry.Iter.Equals(TreeIter.Zero) && !active) {
-                TreeIter iter = entry.Iter;
-                treeStore.Remove(ref iter);
-                entry.Iter = TreeIter.Zero;
-            }
+        public void Cleanup() {
+            Translations.Clear();
+
+            Model.Dispose();
+
+            treeStore.Clear();
+            treeStore.Dispose();
         }
     }
 }

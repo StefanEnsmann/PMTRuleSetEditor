@@ -51,7 +51,7 @@ namespace PokemonTrackerEditor.View {
             return response == (int)ResponseType.Accept ? ret : null;
         }
 
-        private static bool FilterCheckList(TreeModel model, TreeIter iter, Check.CheckType type) {
+        private static bool FilterCheckList(TreeModel model, TreeIter iter, Check.Type type) {
             DependencyEntryBase current = (DependencyEntryBase)model.GetValue(iter, 0);
             if (current != null) {
                 if (current is LocationCategory locCat) {
@@ -61,7 +61,7 @@ namespace PokemonTrackerEditor.View {
                     return true;
                 }
                 else if (current is Check check) {
-                    return check.Type == type;
+                    return check.CheckType == type;
                 }
                 else {
                     return false;
@@ -72,7 +72,7 @@ namespace PokemonTrackerEditor.View {
             }
         }
 
-        public static Check SelectCheck(Window parent, string title, TreeModel model, Check.CheckType type) {
+        public static Check SelectCheck(Window parent, string title, TreeModel model, Check.Type type) {
             Dialog dlg = new Dialog(title, parent, DialogFlags.DestroyWithParent);
             dlg.VBox.PackStart(new Label("Select check:"));
             TreeModelFilter filter = new TreeModelFilter(model, null) {

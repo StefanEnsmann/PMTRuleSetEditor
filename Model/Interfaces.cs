@@ -7,16 +7,16 @@ using System.Threading.Tasks;
 using Gtk;
 
 namespace PokemonTrackerEditor.Model {
-    interface IMovableItems<T> {
+    public interface IMovableItems<T> {
         bool MoveUp(T item);
         bool MoveDown(T item);
     }
 
-    interface IMovable { 
+    public interface IMovable { 
         TreeIter Iter { get; set; }
     }
 
-    class InterfaceHelpers {
+    public class InterfaceHelpers {
         public static bool SwapItems<T>(List<T> list, T item, bool up) where T : IMovable {
             int idx = list.IndexOf(item);
             int newIdx = up ? idx - 1 : idx + 1;

@@ -9,23 +9,27 @@ using Gtk;
 using Newtonsoft.Json;
 
 namespace PokemonTrackerEditor.Model {
-    abstract class StoryItemBase : IEquatable<StoryItemBase>, IMovable, ILocalizable {
+    public abstract class StoryItemBase : IEquatable<StoryItemBase>, IMovable, ILocalizable {
         protected string id;
         abstract public string Id { get; set; }
         public TreeIter Iter { get; set; }
 
         public Localization Localization { get; set; }
-        public RuleSet RuleSet { get; private set; }
 
         abstract public int DependencyCount { get; }
 
-        public StoryItemBase(string id, RuleSet ruleSet) {
+        abstract public RuleSet Rules { get; }
+
+        public StoryItemBase(string id) {
             this.id = id;
-            RuleSet = ruleSet;
-            Localization = new Localization(RuleSet, MainProg.SupportedLanguages.Keys.ToList(), ruleSet.ActiveLanguages);
+            Localization = new Localization(this);
         }
 
-        abstract public void Cleanup();
+        public abstract void InvokeRemove();
+
+        public virtual void Cleanup() {
+            Localization.Cleanup();
+        }
 
         public override bool Equals(object obj) {
             return obj != null && obj is StoryItemBase other && Equals(other);
@@ -46,71 +50,78 @@ namespace PokemonTrackerEditor.Model {
         public static int Compare(TreeModel model, TreeIter a, TreeIter b) {
             return Compare((StoryItemBase)model.GetValue(a, 0), (StoryItemBase)model.GetValue(b, 0));
         }
-
-        public virtual void SetLanguageActive(string language, bool active = true) {
-            Localization.SetLanguageActive(language, active);
-        }
     }
 
-    class StoryItem : StoryItemBase {
-
-        override public string Id { get => id; set { id = value; Category.Parent.RuleSet.ReportChange(); } }
+    public class StoryItem : StoryItemBase {
+        override public RuleSet Rules => Category.Parent.Rules;
+        override public string Id { get => id; set { id = value; Category.Parent.Rules.ReportChange(); } }
+        public string Path => Category.Id + "." + Id;
         public StoryItemCategory Category { get; private set; }
+
         private string imageURL;
-        public string ImageURL { get => imageURL; set { imageURL = value; Category.Parent.RuleSet.ReportChange(); } }
-        private List<StoryItemCondition> dependencies;
-        override public int DependencyCount => dependencies.Count();
-        public StoryItem(string id, StoryItemCategory category) : base(id, category.Parent.RuleSet) {
+        public string ImageURL { get => imageURL; set { imageURL = value; Category.Parent.Rules.ReportChange(); } }
+
+        public List<StoryItemCondition> Dependencies { get; private set; }
+        override public int DependencyCount => Dependencies.Count();
+        public StoryItem(string id, StoryItemCategory category) : base(id) {
             Category = category;
-            dependencies = new List<StoryItemCondition>();
+            Dependencies = new List<StoryItemCondition>();
         }
 
         public void AddDependency(StoryItemCondition dependency) {
-            if (!dependencies.Contains(dependency)) {
-                dependencies.Add(dependency);
+            if (!Dependencies.Contains(dependency)) {
+                Dependencies.Add(dependency);
             }
         }
 
         public void RemoveDependency(StoryItemCondition dependency) {
-            dependencies.Remove(dependency);
+            Dependencies.Remove(dependency);
+        }
+
+        public override void InvokeRemove() {
+            Category.Parent.RemoveItemFromModel(Iter);
+            Category.ChildWasRemoved(this);
+            Category.Parent.Rules.ReportChange();
+            Cleanup();
         }
 
         public override void Cleanup() {
-            StoryItemCondition[] copy = new StoryItemCondition[dependencies.Count];
-            dependencies.CopyTo(copy);
-            foreach (StoryItemCondition cond in copy) {
-                cond.Container.RemoveStoryItemCondition(cond);
+            foreach (StoryItemCondition cond in Dependencies) {
+                cond.StoryItemWasRemoved();
             }
-            dependencies.Clear();
-            dependencies = null;
+            Dependencies.Clear();
+            Dependencies = null;
+
             Category = null;
+
+            base.Cleanup();
         }
     }
 
-    class StoryItemCategory : StoryItemBase, IMovableItems<StoryItem> {
-        override public string Id { get => id; set { id = value; Parent.RuleSet.ReportChange(); } }
+    public class StoryItemCategory : StoryItemBase, IMovableItems<StoryItem> {
+        override public RuleSet Rules => Parent.Rules;
+        override public string Id { get => id; set { id = value; Parent.Rules.ReportChange(); } }
 
         public StoryItems Parent { get; private set; }
 
-        private readonly List<StoryItem> items;
-        public List<StoryItem> Items => new List<StoryItem>(items);
+        public List<StoryItem> Items { get; set; }
         public override int DependencyCount {
             get {
                 int ret = 0;
-                foreach (StoryItem item in items) {
+                foreach (StoryItem item in Items) {
                     ret += item.DependencyCount;
                 }
                 return ret;
             }
         }
 
-        public StoryItemCategory(string id, StoryItems parent) : base(id, parent.RuleSet) {
+        public StoryItemCategory(string id, StoryItems parent) : base(id) {
             Parent = parent;
-            items = new List<StoryItem>();
+            Items = new List<StoryItem>();
         }
 
         public StoryItem FindStoryItem(string item) {
-            foreach (StoryItem it in items) {
+            foreach (StoryItem it in Items) {
                 if (it.Id.Equals(item)) {
                     return it;
                 }
@@ -119,70 +130,66 @@ namespace PokemonTrackerEditor.Model {
         }
 
         public bool StoryItemNameAvailable(string name) {
-            foreach(StoryItem item in items) {
-                if (item.Id.Equals(name))
-                    return false;
-            }
-            return true;
+            return FindStoryItem(name) != null;
         }
 
         public StoryItem AddStoryItem(string storyItem) {
-            StoryItem item = new StoryItem(storyItem, this);
-            if (!items.Contains(item)) {
-                items.Add(item);
-                item.Iter = Parent.Model.AppendValues(Iter, item);
-                Parent.RuleSet.ReportChange();
+            if (StoryItemNameAvailable(storyItem)) {
+                StoryItem item = new StoryItem(storyItem, this);
+                Items.Add(item);
+                Parent.MergeItemToModel(item);
+                Parent.Rules.ReportChange();
                 return item;
             }
-            return null;
+            else {
+                return null;
+            }
         }
 
-        public void RemoveStoryItem(StoryItem item) {
-            TreeIter iter = item.Iter;
-            Parent.Model.Remove(ref iter);
-            items.Remove(item);
-            item.Cleanup();
-            Parent.RuleSet.ReportChange();
+        public override void InvokeRemove() {
+            Parent.RemoveItemFromModel(Iter);
+            Parent.ChildWasRemoved(this);
+            Parent.Rules.ReportChange();
+            Cleanup();
+        }
+
+        public void ChildWasRemoved(StoryItem item) {
+            Items.Remove(item);
         }
 
         public bool MoveUp(StoryItem item) {
-            return InterfaceHelpers.SwapItems(items, item, true);
+            return InterfaceHelpers.SwapItems(Items, item, true);
         }
 
         public bool MoveDown(StoryItem item) {
-            return InterfaceHelpers.SwapItems(items, item, false);
+            return InterfaceHelpers.SwapItems(Items, item, false);
         }
 
-        override public void Cleanup() {
-            foreach (StoryItem item in items) {
+        public override void Cleanup() {
+            foreach (StoryItem item in Items) {
                 item.Cleanup();
             }
-            items.Clear();
-        }
+            Items.Clear();
 
-        public override void SetLanguageActive(string language, bool active = true) {
-            base.SetLanguageActive(language, active);
-            foreach (StoryItem item in items) {
-                item.SetLanguageActive(language, active);
-            }
+            Items = null;
+            Parent = null;
         }
     }
 
     [JsonConverter(typeof(StoryItemConverter))]
-    class StoryItems : IMovableItems<StoryItemCategory> {
-        private List<StoryItemCategory> categories;
-        public List<StoryItemCategory> Categories => new List<StoryItemCategory>(categories);
+    public class StoryItems : IMovableItems<StoryItemCategory> {
+        public List<StoryItemCategory> Categories { get; private set; }
         public TreeStore Model { get; private set; }
-        public RuleSet RuleSet { get; private set; }
+        public RuleSet Rules { get; private set; }
 
         public StoryItems(RuleSet ruleSet) {
-            RuleSet = ruleSet;
+            Rules = ruleSet;
             Model = new TreeStore(typeof(StoryItemBase));
-            categories = new List<StoryItemCategory>();
+            Categories = new List<StoryItemCategory>();
         }
 
         public StoryItemCategory FindStoryItemCategory(string category) {
-            foreach (StoryItemCategory cat in categories) {
+            foreach (StoryItemCategory cat in Categories) {
                 if (cat.Id.Equals(category)) {
                     return cat;
                 }
@@ -195,7 +202,7 @@ namespace PokemonTrackerEditor.Model {
         }
 
         public bool CategoryNameAvailable(string name) {
-            foreach (StoryItemCategory category in categories) {
+            foreach (StoryItemCategory category in Categories) {
                 if (category.Id.Equals(name))
                     return false;
             }
@@ -203,47 +210,54 @@ namespace PokemonTrackerEditor.Model {
         }
 
         public StoryItemCategory AddStoryItemCategory(string category) {
-            StoryItemCategory newCat = new StoryItemCategory(category, this);
-            if (!categories.Contains(newCat)) {
-                newCat.Iter = Model.AppendValues(newCat);
-                categories.Add(newCat);
-                RuleSet.ReportChange();
+            if (CategoryNameAvailable(category)) {
+                StoryItemCategory newCat = new StoryItemCategory(category, this);
+                Categories.Add(newCat);
+                Rules.ReportChange();
                 return newCat;
             }
-            return null;
+            else {
+                return null;
+            }
         }
 
-        public void RemoveStoryItemCategory(StoryItemCategory category) {
-            TreeIter iter = category.Iter;
+        public void ChildWasRemoved(StoryItemCategory category) {
+            Categories.Remove(category);
+        }
+
+        public void MergeItemToModel(StoryItemBase item) {
+            if (item is StoryItemCategory) {
+                item.Iter = Model.AppendValues(item);
+            }
+            else if (item is StoryItem storyItem) {
+                storyItem.Iter = Model.AppendValues(storyItem.Category.Iter, storyItem);
+            }
+        }
+
+        public void RemoveItemFromModel(TreeIter iter) {
             Model.Remove(ref iter);
-            categories.Remove(category);
-            category.Cleanup();
-            RuleSet.ReportChange();
         }
 
         public bool MoveUp(StoryItemCategory category) {
-            return InterfaceHelpers.SwapItems(categories, category, true);
+            return InterfaceHelpers.SwapItems(Categories, category, true);
         }
 
         public bool MoveDown(StoryItemCategory category) {
-            return InterfaceHelpers.SwapItems(categories, category, false);
+            return InterfaceHelpers.SwapItems(Categories, category, false);
         }
 
         public void Cleanup() {
-            foreach (StoryItemCategory category in categories) {
+            foreach (StoryItemCategory category in Categories) {
                 category.Cleanup();
             }
-            categories.Clear();
-            categories = null;
+            Categories.Clear();
+            Categories = null;
+
             Model.Clear();
             Model.Dispose();
             Model = null;
-            RuleSet = null;
-        }
-        public virtual void SetLanguageActive(string language, bool active = true) {
-            foreach (StoryItemCategory category in categories) {
-                category.SetLanguageActive(language, active);
-            }
+
+            Rules = null;
         }
     }
 }

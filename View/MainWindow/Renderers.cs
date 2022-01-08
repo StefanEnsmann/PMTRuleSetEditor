@@ -37,7 +37,7 @@ namespace PokemonTrackerEditor.View.MainWindow {
 
         public static void ConditionLocation(TreeViewColumn column, CellRenderer cell, TreeModel model, TreeIter iter) {
             Check cond = (Check)model.GetValue(iter, 0);
-            (cell as CellRendererText).Text = (cond.Parent as Location).LocationPath;
+            (cell as CellRendererText).Text = (cond.Parent as Location).LocationPath();
         }
 
         public static void StoryItemName(TreeViewColumn column, CellRenderer cell, TreeModel model, TreeIter iter) {
@@ -81,18 +81,18 @@ namespace PokemonTrackerEditor.View.MainWindow {
         }
 
         public static void PokedexIndexCell(TreeViewColumn column, CellRenderer cell, TreeModel model, TreeIter iter) {
-            PokedexData.Entry entry = (PokedexData.Entry)model.GetValue(iter, 0);
-            (cell as CellRendererText).Text = entry.nr.ToString("D4");
+            PokedexRules.Entry entry = (PokedexRules.Entry)model.GetValue(iter, 0);
+            (cell as CellRendererText).Text = entry.Nr.ToString("D4");
         }
 
         public static void PokedexNameCell(TreeViewColumn column, CellRenderer cell, TreeModel model, TreeIter iter) {
-            PokedexData.Entry entry = (PokedexData.Entry)model.GetValue(iter, 0);
-            (cell as CellRendererText).Text = entry.Localization.TryGetValue("en", out string name) ? name : "MISSING";
+            PokedexRules.Entry entry = (PokedexRules.Entry)model.GetValue(iter, 0);
+            (cell as CellRendererText).Text = entry.Data.Localization.TryGetValue("en", out string name) ? name : "MISSING";
         }
 
         public static void PokedexAvailableCell(TreeViewColumn column, CellRenderer cell, TreeModel model, TreeIter iter) {
-            PokedexData.Entry entry = (PokedexData.Entry)model.GetValue(iter, 0);
-            (cell as CellRendererToggle).Active = entry.available;
+            PokedexRules.Entry entry = (PokedexRules.Entry)model.GetValue(iter, 0);
+            (cell as CellRendererToggle).Active = entry.Available;
         }
     }
 }

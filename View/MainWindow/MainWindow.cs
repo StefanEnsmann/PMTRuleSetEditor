@@ -7,6 +7,8 @@ using System.Collections.Generic;
 
 namespace PokemonTrackerEditor.View.MainWindow {
     class MainWindow : Window {
+        public MainProg Main { get; private set; }
+
         public DependencyEntry CurrentLocationSelection { get; set; }
         public StoryItemBase CurrentStoryItemSelection { get; set; }
 
@@ -37,6 +39,8 @@ namespace PokemonTrackerEditor.View.MainWindow {
             locationTreeView.Selection.SelectIter(TreeIter.Zero);
             storyItemsTreeView.Model = ruleSet.StoryItems.Model;
             storyItemsTreeView.Selection.SelectIter(TreeIter.Zero);
+            pokedexTreeView.Model = ruleSet.Pokedex.ListStore;
+            pokedexTreeView.Selection.SelectIter(TreeIter.Zero);
             CurrentLocationSelection = null;
             CurrentStoryItemSelection = null;
         }
@@ -83,7 +87,7 @@ namespace PokemonTrackerEditor.View.MainWindow {
             return chkBtn;
         }
 
-        private Frame CreateCheckConditionList(string title, Check.CheckType type) {
+        private Frame CreateCheckConditionList(string title, Check.Type type) {
             Frame frame = new Frame(title);
             VBox condBox = new VBox { Spacing = 5 };
 
@@ -133,13 +137,14 @@ namespace PokemonTrackerEditor.View.MainWindow {
             return fileButton;
         }
 
-        private ToolButton CreateCheckButton(string title, Check.CheckType type) {
+        private ToolButton CreateCheckButton(string title, Check.Type type) {
             ToolButton addCheckButton = new ToolButton(Stock.Add) { Label = title };
             addCheckButton.Clicked += (object sender, EventArgs args) => { ButtonCallbacks.OnAddCheckClick(this, type); };
             return addCheckButton;
         }
 
-        public MainWindow() : base("") {
+        public MainWindow(MainProg main) : base("") {
+            Main = main;
             int windowWidth = 1000;
             int windowHeight = 600;
             windowTitle = "Pokémon Map Tracker Rule Set Editor";
@@ -166,7 +171,7 @@ namespace PokemonTrackerEditor.View.MainWindow {
 
             Frame rulesetNameFrame = new Frame("Ruleset Name");
             rulesetNameEntry = new Entry();
-            rulesetNameEntry.Changed += (object sender, EventArgs args) => { MainProg.RuleSet.Name = ((Entry)sender).Text; };
+            rulesetNameEntry.Changed += (object sender, EventArgs args) => { Main.Rules.Name = ((Entry)sender).Text; };
             rulesetNameFrame.Add(rulesetNameEntry);
             generalBox.PackStart(rulesetNameFrame, false, false, 0);
 
@@ -177,7 +182,7 @@ namespace PokemonTrackerEditor.View.MainWindow {
             }
             gameNameComboBox = ComboBoxEntry.NewText();
             gameNameComboBox.Model = gameModel;
-            gameNameComboBox.Changed += (object sender, EventArgs args) => { MainProg.RuleSet.Game = ((ComboBoxEntry)sender).ActiveText; };
+            gameNameComboBox.Changed += (object sender, EventArgs args) => { Main.Rules.Game = ((ComboBoxEntry)sender).ActiveText; };
             gameFrame.Add(gameNameComboBox);
 
             generalBox.PackStart(gameFrame, false, false, 0);
@@ -189,7 +194,7 @@ namespace PokemonTrackerEditor.View.MainWindow {
             foreach (KeyValuePair<string, string> languages in MainProg.SupportedLanguages) {
                 CheckButton chkBtn = CreateLanguageCheckButton(languages.Key, languages.Value);
                 languageButtons[languages.Key] = chkBtn;
-                chkBtn.Toggled += (object sender, EventArgs args) => { MainProg.RuleSet.SetLanguageActive(languages.Key, ((CheckButton)sender).Active); };
+                chkBtn.Toggled += (object sender, EventArgs args) => { Main.Rules.SetLanguageActive(languages.Key, ((CheckButton)sender).Active); locationLocalizationTreeView.QueueDraw(); };
                 languagesTable.Attach(chkBtn, col, col + 1, row, row + 1);
                 col = (col + 1) % 3;
                 if (col == 0) {
@@ -207,9 +212,9 @@ namespace PokemonTrackerEditor.View.MainWindow {
             // Locations view
             VBox locationTreeBox = new VBox { Spacing = 5 };
             ScrolledWindow locationTreeViewScrolledWindow = new ScrolledWindow();
-            locationTreeView = new TreeView(MainProg.RuleSet.Model);
+            locationTreeView = new TreeView(Main.Rules.Model);
             locationTreeView.SizeAllocated += (object sender, SizeAllocatedArgs args) => {
-                EventCallbacks.OnTreeViewSizeChanged(locationTreeViewScrolledWindow, CurrentLocationSelection, MainProg.RuleSet.Model);
+                EventCallbacks.OnTreeViewSizeChanged(locationTreeViewScrolledWindow, CurrentLocationSelection, Main.Rules.Model);
             };
 
             locationTreeView.Selection.Changed += (object sender, EventArgs args) => { EventCallbacks.OnLocationTreeSelectionChanged(this, (TreeSelection)sender); };
@@ -238,10 +243,10 @@ namespace PokemonTrackerEditor.View.MainWindow {
             addCheckButton = new ToolButton(Stock.Add) { Label = "Sub location" };
             addCheckButton.Clicked += (object sender, EventArgs args) => { ButtonCallbacks.OnAddLocationClick(this, false); };
             locationTreeToolbar.Insert(addCheckButton, 2);
-            locationTreeToolbar.Insert(CreateCheckButton("Item", Check.CheckType.ITEM), 3);
-            locationTreeToolbar.Insert(CreateCheckButton("Pokémon", Check.CheckType.POKEMON), 4);
-            locationTreeToolbar.Insert(CreateCheckButton("Trade", Check.CheckType.TRADE), 5);
-            locationTreeToolbar.Insert(CreateCheckButton("Trainer", Check.CheckType.TRAINER), 6);
+            locationTreeToolbar.Insert(CreateCheckButton("Item", Check.Type.ITEM), 3);
+            locationTreeToolbar.Insert(CreateCheckButton("Pokémon", Check.Type.POKEMON), 4);
+            locationTreeToolbar.Insert(CreateCheckButton("Trade", Check.Type.TRADE), 5);
+            locationTreeToolbar.Insert(CreateCheckButton("Trainer", Check.Type.TRAINER), 6);
 
             ToolButton removeSelectedButton = new ToolButton(Stock.Remove) { Label = "Remove" };
             removeSelectedButton.Clicked += (object sender, EventArgs args) => { ButtonCallbacks.OnRemoveLocationOrCheckClick(this); };
@@ -281,10 +286,10 @@ namespace PokemonTrackerEditor.View.MainWindow {
             locationLocalizationFrame.Add(locationLocalizationTreeView);
             locationEditorTable.Attach(locationLocalizationFrame, 0, 1, 0, 1);
 
-            locationEditorTable.Attach(CreateCheckConditionList("Items", Check.CheckType.ITEM), 1, 2, 0, 1);
-            locationEditorTable.Attach(CreateCheckConditionList("Pokémon", Check.CheckType.POKEMON), 0, 1, 1, 2);
-            locationEditorTable.Attach(CreateCheckConditionList("Trades", Check.CheckType.TRADE), 1, 2, 1, 2);
-            locationEditorTable.Attach(CreateCheckConditionList("Trainers", Check.CheckType.TRAINER), 0, 1, 2, 3);
+            locationEditorTable.Attach(CreateCheckConditionList("Items", Check.Type.ITEM), 1, 2, 0, 1);
+            locationEditorTable.Attach(CreateCheckConditionList("Pokémon", Check.Type.POKEMON), 0, 1, 1, 2);
+            locationEditorTable.Attach(CreateCheckConditionList("Trades", Check.Type.TRADE), 1, 2, 1, 2);
+            locationEditorTable.Attach(CreateCheckConditionList("Trainers", Check.Type.TRAINER), 0, 1, 2, 3);
 
             Frame storyItemConditionFrame = new Frame("Story Items");
             VBox condStoryItemBox = new VBox { Spacing = 5 };
@@ -339,9 +344,9 @@ namespace PokemonTrackerEditor.View.MainWindow {
             HPaned storyItemsPaned = new HPaned();
             VBox storyItemsBox = new VBox { Spacing = 5 };
             ScrolledWindow storyItemsScrolledWindow = new ScrolledWindow();
-            storyItemsTreeView = new TreeView(MainProg.RuleSet.StoryItems.Model);
+            storyItemsTreeView = new TreeView(Main.Rules.StoryItems.Model);
             storyItemsTreeView.SizeAllocated += (object sender, SizeAllocatedArgs args) => {
-                EventCallbacks.OnTreeViewSizeChanged(storyItemsScrolledWindow, CurrentStoryItemSelection, MainProg.RuleSet.StoryItems.Model);
+                EventCallbacks.OnTreeViewSizeChanged(storyItemsScrolledWindow, CurrentStoryItemSelection, Main.Rules.StoryItems.Model);
             };
             storyItemsTreeView.Selection.Changed += (object sender, EventArgs args) => { EventCallbacks.OnStoryItemTreeSelectionChanged(this, (TreeSelection)sender); };
 
@@ -415,7 +420,7 @@ namespace PokemonTrackerEditor.View.MainWindow {
             // Pokedex
             VBox pokedexBox = new VBox { Spacing = 5 };
             ScrolledWindow pokedexScrolledWindow = new ScrolledWindow();
-            pokedexTreeView = new TreeView(MainProg.Pokedex.ListStore);
+            pokedexTreeView = new TreeView(Main.Rules.Pokedex.ListStore);
 
             TreeViewColumn pokedexIdxColumn = new TreeViewColumn { Title = "#", Resizable = true };
             CellRendererText pokedexIdxColumnText = new CellRendererText();

@@ -12,14 +12,16 @@ using PokemonTrackerEditor.Model;
 using PokemonTrackerEditor.View.MainWindow;
 
 namespace PokemonTrackerEditor {
-    partial class MainProg {
-        public static MainProg Instance { get; private set; }
+    public partial class MainProg {
+        public RuleSet Rules { get; private set; }
+        public string CurrentFile { get; set; }
+
+        private static MainProg Instance { get; set; }
+
         public static readonly string BaseURL = "https://pkmntracker.ensmann.de/";
-        public static RuleSet RuleSet { get; private set; }
-        public static string CurrentFile { get; set; }
         public static Dictionary<string, string> SupportedLanguages { get; private set; }
         public static List<string> DefaultGames { get; private set; }
-        public static PokedexData Pokedex { get; private set; }
+        public static Pokedex Pokedex { get; private set; }
 
         public MainProg() {
             if (Instance == null) {
@@ -83,31 +85,31 @@ namespace PokemonTrackerEditor {
 
                 using (WebClient wc = new WebClient() { Encoding = Encoding.UTF8 }) {
                     string pokedexData = wc.DownloadString(BaseURL + "pkmn_data/pokedex.json");
-                    Pokedex = JsonConvert.DeserializeObject<PokedexData>(pokedexData);
+                    Pokedex = JsonConvert.DeserializeObject<Pokedex>(pokedexData);
                 }
 
-                RuleSet = new RuleSet();
+                Rules = new RuleSet();
             }
         }
 
-        public static RuleSet NewRuleSet() {
-            if (RuleSet != null) {
-                RuleSet.Cleanup();
+        public RuleSet NewRuleSet() {
+            if (Rules != null) {
+                Rules.Cleanup();
             }
-            RuleSet = new RuleSet();
-            return RuleSet;
+            Rules = new RuleSet();
+            return Rules;
         }
 
-        public static RuleSet LoadRuleSet(string file) {
-            RuleSet.Cleanup();
-            RuleSet = RuleSet.FromFile(file);
+        public RuleSet LoadRuleSet(string file) {
+            Rules.Cleanup();
+            Rules = RuleSet.FromFile(file);
             CurrentFile = file;
-            return RuleSet;
+            return Rules;
         }
 
         private void Run() {
             Application.Init();
-            MainWindow window = new MainWindow();
+            MainWindow window = new MainWindow(this);
             Application.Run();
         }
 
