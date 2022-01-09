@@ -27,17 +27,7 @@ namespace PokemonTrackerEditor.View.MainWindow {
 
         public static void DependencyEntryCondCount(TreeViewColumn column, CellRenderer cell, TreeModel model, TreeIter iter) {
             DependencyEntryBase dep = (DependencyEntryBase)model.GetValue(iter, 0);
-            (cell as CellRendererText).Text = dep is DependencyEntry entry ? "" + entry.ConditionCount : "";
-        }
-
-        public static void ConditionName(TreeViewColumn column, CellRenderer cell, TreeModel model, TreeIter iter) {
-            DependencyEntryBase cond = (DependencyEntryBase)model.GetValue(iter, 0);
-            (cell as CellRendererText).Text = cond.Id;
-        }
-
-        public static void ConditionLocation(TreeViewColumn column, CellRenderer cell, TreeModel model, TreeIter iter) {
-            Check cond = (Check)model.GetValue(iter, 0);
-            (cell as CellRendererText).Text = (cond.Parent as Location).LocationPath();
+            (cell as CellRendererText).Text = dep is DependencyEntry entry ? "" + entry.Conditions.Count : "";
         }
 
         public static void StoryItemName(TreeViewColumn column, CellRenderer cell, TreeModel model, TreeIter iter) {
@@ -50,14 +40,14 @@ namespace PokemonTrackerEditor.View.MainWindow {
             (cell as CellRendererText).Text = "" + storyItem.DependencyCount;
         }
 
-        public static void StoryItemConditionName(TreeViewColumn column, CellRenderer cell, TreeModel model, TreeIter iter) {
-            StoryItemConditionBase storyItemCondition = (StoryItemConditionBase)model.GetValue(iter, 0);
-            (cell as CellRendererText).Text = storyItemCondition.Id;
-        }
-
-        public static void StoryItemConditionCollectionCount(TreeViewColumn column, CellRenderer cell, TreeModel model, TreeIter iter) {
-            StoryItemConditionBase storyItemCondition = (StoryItemConditionBase)model.GetValue(iter, 0);
-            (cell as CellRendererText).Text = storyItemCondition is StoryItemConditionCollection coll ? "" + coll.Count : "";
+        public static void ConditionName(TreeViewColumn column, CellRenderer cell, TreeModel model, TreeIter iter) {
+            ConditionBase conditionBase = (ConditionBase)model.GetValue(iter, 0);
+            if (conditionBase is Condition condition) {
+                (cell as CellRendererText).Text = condition.Id;
+            }
+            else if (conditionBase is ConditionCollection collection) {
+                (cell as CellRendererText).Text = collection.Type.ToString();
+            }
         }
 
         public static void CheckComboBoxCell(CellLayout cellLayout, CellRenderer cell, TreeModel model, TreeIter iter) {

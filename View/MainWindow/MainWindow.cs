@@ -26,7 +26,7 @@ namespace PokemonTrackerEditor.View.MainWindow {
         private readonly ComboBoxEntry gameNameComboBox;
         private readonly Dictionary<string, CheckButton> languageButtons;
 
-        private readonly TreeView locationConditionTreeView;
+        private readonly TreeView locationConditionsTreeView;
 
         public void SetRuleSet(RuleSet ruleSet, string filename) {
             SetRuleSetPath(filename);
@@ -54,11 +54,11 @@ namespace PokemonTrackerEditor.View.MainWindow {
             if (entry != null) {
                 entry.Localization.Model.Refilter();
                 locationLocalizationTreeView.Model = entry.Localization.Model;
-                locationConditionTreeView.Model = entry.Conditions.Model;
+                locationConditionsTreeView.Model = entry.Conditions.Model;
             }
             else {
                 locationLocalizationTreeView.Model = null;
-                locationConditionTreeView.Model = null;
+                locationConditionsTreeView.Model = null;
             }
         }
 
@@ -82,42 +82,6 @@ namespace PokemonTrackerEditor.View.MainWindow {
         private CheckButton CreateLanguageCheckButton(string languageCode, string language) {
             CheckButton chkBtn = new CheckButton(language);
             return chkBtn;
-        }
-
-        private Frame CreateCheckConditionList(string title, Check.Type type) {
-            Frame frame = new Frame(title);
-            VBox condBox = new VBox { Spacing = 5 };
-
-            TreeView condTreeView = new TreeView();
-            locationConditionsTreeViews[title] = condTreeView;
-
-            TreeViewColumn condLocationColumn = new TreeViewColumn { Title = "Location", Resizable = true };
-            CellRendererText condLocationColumnText = new CellRendererText();
-            condLocationColumn.PackStart(condLocationColumnText, true);
-            condLocationColumn.SetCellDataFunc(condLocationColumnText, new TreeCellDataFunc(Renderers.ConditionLocation));
-            condTreeView.AppendColumn(condLocationColumn);
-
-            TreeViewColumn condCheckColumn = new TreeViewColumn { Title = "Check", Resizable = true };
-            CellRendererText condCheckColumnText = new CellRendererText();
-            condCheckColumn.PackStart(condCheckColumnText, true);
-            condCheckColumn.SetCellDataFunc(condCheckColumnText, new TreeCellDataFunc(Renderers.ConditionName));
-            condTreeView.AppendColumn(condCheckColumn);
-
-            ScrolledWindow condTreeViewScrolledWindow = new ScrolledWindow { condTreeView };
-            condBox.PackStart(condTreeViewScrolledWindow, true, true, 0);
-
-            Toolbar condBoxControls = new Toolbar();
-            ToolButton addCondition = new ToolButton(Stock.Add);
-            addCondition.Clicked += (object sender, EventArgs args) => { ButtonCallbacks.OnAddConditionClick(this, type); };
-            condBoxControls.Insert(addCondition, 0);
-            ToolButton removeCondition = new ToolButton(Stock.Remove);
-            removeCondition.Clicked += (object sender, EventArgs args) => { ButtonCallbacks.OnRemoveConditionClick(this, condTreeView); };
-            condBoxControls.Insert(removeCondition, 1);
-
-            condBox.PackStart(condBoxControls, false, false, 0);
-
-            frame.Add(condBox);
-            return frame;
         }
 
         private TreeViewColumn CreateLocationColumn(string title, TreeCellDataFunc func) {
@@ -266,7 +230,7 @@ namespace PokemonTrackerEditor.View.MainWindow {
             editorPaned.Add1(locationTreeBox);
 
             // Location editor
-            Table locationEditorTable = new Table(3, 2, true);
+            VBox locationEditor = new VBox { Spacing = 5 };
 
             Frame locationLocalizationFrame = new Frame("Localization");
             locationLocalizationTreeView = new TreeView();
@@ -284,59 +248,47 @@ namespace PokemonTrackerEditor.View.MainWindow {
             locationLocalizationTreeView.AppendColumn(locationLocalizationValueColumn);
 
             locationLocalizationFrame.Add(locationLocalizationTreeView);
-            locationEditorTable.Attach(locationLocalizationFrame, 0, 1, 0, 1);
+            locationEditor.PackStart(locationLocalizationFrame, false, false, 0);
 
-            locationEditorTable.Attach(CreateCheckConditionList("Items", Check.Type.ITEM), 1, 2, 0, 1);
-            locationEditorTable.Attach(CreateCheckConditionList("Pokémon", Check.Type.POKEMON), 0, 1, 1, 2);
-            locationEditorTable.Attach(CreateCheckConditionList("Trades", Check.Type.TRADE), 1, 2, 1, 2);
-            locationEditorTable.Attach(CreateCheckConditionList("Trainers", Check.Type.TRAINER), 0, 1, 2, 3);
+            Frame locationConditionsFrame = new Frame("Conditions");
+            VBox locationConditionsBox = new VBox { Spacing = 5 };
 
-            Frame storyItemConditionFrame = new Frame("Story Items");
-            VBox condStoryItemBox = new VBox { Spacing = 5 };
+            locationConditionsTreeView = new TreeView();
 
-            TreeView condStoryItemTreeView = new TreeView();
-            locationConditionsTreeViews["Story Items"] = condStoryItemTreeView;
+            TreeViewColumn locationConditionsColumn = new TreeViewColumn { Title = "Condition", Resizable = true };
+            CellRendererText locationConditionsColumnText = new CellRendererText();
+            locationConditionsColumn.PackStart(locationConditionsColumnText, true);
+            locationConditionsColumn.SetCellDataFunc(locationConditionsColumnText, new TreeCellDataFunc(Renderers.ConditionName));
+            locationConditionsTreeView.AppendColumn(locationConditionsColumn);
 
-            TreeViewColumn condStoryItemColumn = new TreeViewColumn { Title = "Item", Resizable = true };
-            CellRendererText condStoryItemColumnText = new CellRendererText();
-            condStoryItemColumn.PackStart(condStoryItemColumnText, true);
-            condStoryItemColumn.SetCellDataFunc(condStoryItemColumnText, new TreeCellDataFunc(Renderers.StoryItemConditionName));
-            condStoryItemTreeView.AppendColumn(condStoryItemColumn);
+            ScrolledWindow locationConditionsScrolledWindow = new ScrolledWindow { locationConditionsTreeView };
+            locationConditionsBox.PackStart(locationConditionsScrolledWindow, true, true, 0);
 
-            TreeViewColumn condStoryItemCountColumn = new TreeViewColumn { Title = "Count", Resizable = true };
-            CellRendererText condStoryItemCountColumnText = new CellRendererText();
-            condStoryItemCountColumn.PackStart(condStoryItemCountColumnText, true);
-            condStoryItemCountColumn.SetCellDataFunc(condStoryItemCountColumnText, new TreeCellDataFunc(Renderers.StoryItemConditionCollectionCount));
-            condStoryItemTreeView.AppendColumn(condStoryItemCountColumn);
-
-            ScrolledWindow condStoryItemTreeViewScrolledWindow = new ScrolledWindow { condStoryItemTreeView };
-            condStoryItemBox.PackStart(condStoryItemTreeViewScrolledWindow, true, true, 0);
-
-            Toolbar condStoryItemBoxControls = new Toolbar();
+            Toolbar locationConditionsControls = new Toolbar();
             ToolButton addStoryItemCondition = new ToolButton(Stock.Add) { Label = "Item" };
-            addStoryItemCondition.Clicked += (object sender, EventArgs args) => { ButtonCallbacks.OnAddStoryItemConditionClick(this, condStoryItemTreeView); };
-            condStoryItemBoxControls.Insert(addStoryItemCondition, 0);
+            addStoryItemCondition.Clicked += (object sender, EventArgs args) => { ButtonCallbacks.OnAddStoryItemConditionClick(this, locationConditionsTreeView); };
+            locationConditionsControls.Insert(addStoryItemCondition, 0);
             ToolButton addStoryItemANDCollection = new ToolButton(Stock.Add) { Label = "AND" };
-            addStoryItemANDCollection.Clicked += (object sender, EventArgs args) => { ButtonCallbacks.OnAddStoryItemConditionANDCollectionClick(this, condStoryItemTreeView); };
-            condStoryItemBoxControls.Insert(addStoryItemANDCollection, 1);
+            addStoryItemANDCollection.Clicked += (object sender, EventArgs args) => { ButtonCallbacks.OnAddConditionCollectionClick(this, locationConditionsTreeView, ConditionCollection.LogicalType.AND); };
+            locationConditionsControls.Insert(addStoryItemANDCollection, 1);
             ToolButton addStoryItemORCollection = new ToolButton(Stock.Add) { Label = "OR" };
-            addStoryItemORCollection.Clicked += (object sender, EventArgs args) => { ButtonCallbacks.OnAddStoryItemConditionORCollectionClick(this, condStoryItemTreeView); };
-            condStoryItemBoxControls.Insert(addStoryItemORCollection, 2);
+            addStoryItemORCollection.Clicked += (object sender, EventArgs args) => { ButtonCallbacks.OnAddConditionCollectionClick(this, locationConditionsTreeView, ConditionCollection.LogicalType.OR); };
+            locationConditionsControls.Insert(addStoryItemORCollection, 2);
             ToolButton addStoryItemNOTCollection = new ToolButton(Stock.Add) { Label = "NOT" };
-            addStoryItemNOTCollection.Clicked += (object sender, EventArgs args) => { ButtonCallbacks.OnAddStoryItemConditionNOTCollectionClick(this, condStoryItemTreeView); };
-            condStoryItemBoxControls.Insert(addStoryItemNOTCollection, 3);
+            addStoryItemNOTCollection.Clicked += (object sender, EventArgs args) => { ButtonCallbacks.OnAddConditionCollectionClick(this, locationConditionsTreeView, ConditionCollection.LogicalType.NOT); };
+            locationConditionsControls.Insert(addStoryItemNOTCollection, 3);
             ToolButton removeStoryItemCondition = new ToolButton(Stock.Remove);
-            removeStoryItemCondition.Clicked += (object sender, EventArgs args) => { ButtonCallbacks.OnRemoveStoryItemConditionClick(this, condStoryItemTreeView); };
-            condStoryItemBoxControls.Insert(removeStoryItemCondition, 4);
+            removeStoryItemCondition.Clicked += (object sender, EventArgs args) => { ButtonCallbacks.OnRemoveStoryItemConditionClick(this, locationConditionsTreeView); };
+            locationConditionsControls.Insert(removeStoryItemCondition, 4);
 
-            condStoryItemBox.PackStart(condStoryItemBoxControls, false, false, 0);
+            locationConditionsBox.PackStart(locationConditionsControls, false, false, 0);
 
-            storyItemConditionFrame.Add(condStoryItemBox);
+            locationConditionsFrame.Add(locationConditionsBox);
 
-            locationEditorTable.Attach(storyItemConditionFrame, 1, 2, 2, 3);
+            locationEditor.PackStart(locationConditionsFrame, true, true, 1);
 
-            editorPaned.Add2(locationEditorTable);
-            editorPaned.Position = (int)(windowWidth * 0.5);
+            editorPaned.Add2(locationEditor);
+            editorPaned.Position = (int)(windowWidth * 0.65);
 
             mainNotebook.AppendPage(editorPaned, new Label { Text = "Locations" });
 

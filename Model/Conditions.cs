@@ -18,6 +18,8 @@ namespace PokemonTrackerEditor.Model {
         public virtual RuleSet Rules => Parent.Rules;
         public virtual TreeIter Iter { get; set; }
 
+        abstract public string Path { get; }
+
         public ConditionBase(ConditionCollection parent) {
             Parent = parent;
         }
@@ -33,20 +35,23 @@ namespace PokemonTrackerEditor.Model {
             Cleanup();
         }
 
-        public abstract override int GetHashCode();
-
-        public abstract string GetHashableString();
-
-        public override bool Equals(object obj) {
-            return obj != null && obj is ConditionBase conditionBase && Equals(conditionBase);
+        public override int GetHashCode() {
+            return Path.GetHashCode();
         }
 
-        public abstract bool Equals(ConditionBase conditionBase);
+        public override bool Equals(object obj) {
+            return obj != null && this == obj;
+        }
+
+        public bool Equals(ConditionBase conditionBase) {
+            return this == conditionBase;
+        }
     }
 
     public class Condition : ConditionBase {
         public IConditionable Conditionable { get; private set; }
         public string Id => Conditionable?.Path;
+        public override string Path => Parent.Path + "." + Id;
 
         public Condition(IConditionable conditionable, ConditionCollection parent) : base(parent) {
             Conditionable = conditionable;
@@ -62,18 +67,6 @@ namespace PokemonTrackerEditor.Model {
             Conditionable = null;
             base.Cleanup();
         }
-
-        public override int GetHashCode() {
-            return Id.GetHashCode();
-        }
-
-        public override string GetHashableString() {
-            return Id;
-        }
-
-        public override bool Equals(ConditionBase conditionBase) {
-            return conditionBase != null && conditionBase is Condition condition && Id.Equals(condition.Id);
-        }
     }
 
     public class ConditionCollection : ConditionBase {
@@ -85,9 +78,26 @@ namespace PokemonTrackerEditor.Model {
         public LogicalType Type { get; private set; }
         public int Index { get; private set; }
         public bool CanAddCondition => !(Type == LogicalType.NOT && Conditions.Count > 0);
+        public override string Path => Parent.Path + "." + Index;
+
+        public int Count {
+            get {
+                int c = 0;
+                foreach (ConditionBase conditionBase in Conditions) {
+                    if (conditionBase is Condition) {
+                        ++c;
+                    }
+                    else if (conditionBase is ConditionCollection collection) {
+                        c += collection.Count;
+                    }
+                }
+                return c;
+            }
+        }
 
 
-        public ConditionCollection(LogicalType type, ConditionCollection parent) : base(parent) {
+        public ConditionCollection(LogicalType type, int index, ConditionCollection parent) : base(parent) {
+            Index = index;
             Conditions = new List<ConditionBase>();
             Type = type;
         }
@@ -116,7 +126,19 @@ namespace PokemonTrackerEditor.Model {
 
         public ConditionCollection AddCollection(LogicalType type) {
             if (CanAddCondition) {
-                ConditionCollection collection = new ConditionCollection(type, this);
+                int idx = -1;
+                bool blocked = true;
+                while (blocked) {
+                    ++idx;
+                    blocked = false;
+                    foreach (ConditionBase conditionBase in Conditions) {
+                        if (conditionBase is ConditionCollection conditionCollection && conditionCollection.Type == type && conditionCollection.Index == idx) {
+                            blocked = true;
+                            break;
+                        }
+                    }
+                }
+                ConditionCollection collection = new ConditionCollection(type, idx, this);
                 Conditions.Add(collection);
                 InsertConditionToTree(collection, Iter);
                 Rules.ReportChange();
@@ -137,7 +159,7 @@ namespace PokemonTrackerEditor.Model {
 
         public void ChildWasRemoved(ConditionBase condition) {
             if (condition != this) {
-                Conditions.Remove(condition);
+                Console.WriteLine(Conditions.Remove(condition));
             }
         }
 
@@ -150,32 +172,6 @@ namespace PokemonTrackerEditor.Model {
 
             base.Cleanup();
         }
-
-        public override int GetHashCode() {
-            return GetHashableString().GetHashCode();
-        }
-
-        public override string GetHashableString() {
-            string ret = Index.ToString();
-            foreach (ConditionBase condition in Conditions) {
-                ret += condition.GetHashableString();
-            }
-            return ret;
-        }
-
-        public override bool Equals(ConditionBase conditionBase) {
-            if (conditionBase != null && conditionBase is ConditionCollection conditionCollection && conditionCollection.Conditions.Count == Conditions.Count) {
-                for (int i = 0; i < Conditions.Count; ++i) {
-                    if (!Conditions[i].Equals(conditionCollection.Conditions[i])) {
-                        return false;
-                    }
-                }
-                return true;
-            }
-            else {
-                return false;
-            }
-        }
     }
 
     public class Conditions : ConditionCollection {
@@ -185,21 +181,16 @@ namespace PokemonTrackerEditor.Model {
 
         public override RuleSet Rules => Entry.Rules;
         public override ConditionCollection Parent => this;
+        public override string Path => "Base";
 
-        public override TreeIter Iter => TreeIter.Zero;
-
-        public Conditions(DependencyEntry entry) : base(LogicalType.AND, null) {
+        public Conditions(DependencyEntry entry) : base(LogicalType.AND, 0, null) {
             Entry = entry;
             Model = new TreeStore(typeof(ConditionBase));
+            Iter = Model.AppendValues(this);
         }
 
         public override void InsertConditionToTree(ConditionBase condition, TreeIter parent) {
-            if (parent.Equals(TreeIter.Zero)) {
-                Model.AppendValues(condition);
-            }
-            else {
-                Model.AppendValues(condition, parent);
-            }
+           condition.Iter = Model.AppendValues(parent, condition);
         }
 
         public override void RemoveConditionFromTree(ConditionBase condition) {

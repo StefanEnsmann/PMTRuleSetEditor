@@ -15,33 +15,14 @@ namespace PokemonTrackerEditor.Model {
         public static DependencyEntry currentDependencyEntry;
         public static ILocationContainer currentLocationContainer;
         public static StoryItemBase currentStoryItemBase;
-        public static StoryItemConditionCollection currentStoryItemConditionCollection;
-        public static Dictionary<string, List<string>> dependencyCollections;
         public static bool localizationIsStoryItem;
 
         public static void Init() {
             ruleSet = null;
             currentDependencyEntry = null;
             currentLocationContainer = null;
-            currentStoryItemConditionCollection = null;
             currentStoryItemBase = null;
             localizationIsStoryItem = true;
-            if (dependencyCollections == null) {
-                dependencyCollections = new Dictionary<string, List<string>>();
-            }
-            else {
-                dependencyCollections.Clear();
-            }
-        }
-
-        public static void SolveDependencies() {
-            foreach (KeyValuePair<string, List<string>> dependencies in dependencyCollections) {
-                DependencyEntry entry = ruleSet.ResolvePath(dependencies.Key);
-                foreach (string path in dependencies.Value) {
-                    Check check = ruleSet.ResolvePath(path) as Check;
-                    entry.AddCondition(check);
-                }
-            }
         }
     }
 
@@ -227,7 +208,7 @@ namespace PokemonTrackerEditor.Model {
             Unindent();
 
             Read(reader, EndObject);
-            DependencyCache.SolveDependencies();
+            //DependencyCache.SolveDependencies();
 
             return ruleSet;
         }
@@ -334,7 +315,7 @@ namespace PokemonTrackerEditor.Model {
             writer.WriteEndArray();
         }
     }
-
+    
     abstract class DependencyEntryConverter : CustomConverter {
         public override bool CanConvert(Type objectType) {
             return false;
@@ -387,8 +368,8 @@ namespace PokemonTrackerEditor.Model {
                                 ReadConditionsList(reader, type, conditionsCache);
                                 break;
                             case "story_items":
-                                DependencyCache.currentStoryItemConditionCollection = entry.StoryItemsConditions;
-                                serializer.Deserialize(reader, typeof(StoryItemConditionCollection));
+                                //DependencyCache.currentStoryItemConditionCollection = entry.StoryItemsConditions;
+                                //serializer.Deserialize(reader, typeof(StoryItemConditionCollection));
                                 break;
                             default:
                                 Console.WriteLine("ERROR! Unknown dependency condition: " + type);
@@ -397,7 +378,7 @@ namespace PokemonTrackerEditor.Model {
                         Read(reader, Property.Name(), EndObject);
                     }
                     if (conditionsCache.Count > 0) {
-                        DependencyCache.dependencyCollections.Add(entry.Path, conditionsCache);
+                        //DependencyCache.dependencyCollections.Add(entry.Path, conditionsCache);
                     }
                     Unindent();
                     Read(reader, Property.Name(), EndObject); // EndObject or property from subclass
@@ -427,6 +408,7 @@ namespace PokemonTrackerEditor.Model {
             DependencyEntry entry = (DependencyEntry)value;
             writer.WritePropertyName("id"); writer.WriteValue(entry.Id);
             writer.WritePropertyName("localization"); serializer.Serialize(writer, entry.Localization);
+            /*
             Dictionary<string, Dictionary<Check, Gtk.TreeIter>> pairs = new Dictionary<string, Dictionary<Check, Gtk.TreeIter>> { { "items", entry.ItemsConditions }, { "pokemon", entry.PokemonConditions }, { "trainers", entry.TrainersConditions }, { "trades", entry.TradesConditions } };
             bool hasOpened = false;
             foreach (KeyValuePair<string, Dictionary<Check, Gtk.TreeIter>> pair in pairs) {
@@ -457,6 +439,7 @@ namespace PokemonTrackerEditor.Model {
             if (hasOpened) {
                 writer.WriteEndObject();
             }
+            */
         }
     }
 
@@ -537,98 +520,6 @@ namespace PokemonTrackerEditor.Model {
             writer.WriteStartObject();
             base.WriteJson(writer, value, serializer);
             writer.WriteEndObject();
-        }
-    }
-
-    class StoryItemConditionConverter : CustomConverter {
-        public override bool CanConvert(Type objectType) {
-            return (new List<Type> { typeof(StoryItemCondition), typeof(StoryItemANDCondition), typeof(StoryItemORCondition), typeof(StoryItemNOTCondition), typeof(StoryItemsConditions) }.Contains(objectType));
-        }
-
-        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer) {
-            base.ReadJson(reader, objectType, existingValue, serializer);
-            if (objectType == typeof(StoryItemConditionCollection)) {
-                Indent();
-                Read(reader, StartArray);
-                StoryItemConditionBase conditionBase = serializer.Deserialize(reader, typeof(StoryItemConditionBase)) as StoryItemConditionBase;
-                while (conditionBase != null) {
-                    conditionBase = serializer.Deserialize(reader, typeof(StoryItemConditionBase)) as StoryItemConditionBase;
-                }
-                Unindent();
-            }
-            else if (objectType == typeof(StoryItemConditionBase)) {
-                Read(reader, StartObject, EndArray);
-                Indent();
-                if (reader.TokenType == JsonToken.StartObject) {
-                    Read(reader, Property.Name("type"), Property.Name("category"));
-                    string type = StringValue(reader);
-                    if (type == "type") {
-                        StoryItemConditionCollection collection;
-                        string collectionType = ReadAsString(reader);
-                        switch (collectionType) {
-                            case "AND":
-                                collection = DependencyCache.currentStoryItemConditionCollection.AddANDCollection();
-                                break;
-                            case "OR":
-                                collection = DependencyCache.currentStoryItemConditionCollection.AddORCollection();
-                                break;
-                            case "NOT":
-                                collection = DependencyCache.currentStoryItemConditionCollection.AddNOTCollection();
-                                break;
-                            default:
-                                Unindent();
-                                return null;
-                        }
-                        Read(reader, Property.Name("conditions"));
-                        StoryItemConditionCollection backup = DependencyCache.currentStoryItemConditionCollection;
-                        DependencyCache.currentStoryItemConditionCollection = collection;
-                        serializer.Deserialize(reader, typeof(StoryItemConditionCollection));
-                        DependencyCache.currentStoryItemConditionCollection = backup;
-                        Read(reader, EndObject);
-                        Unindent();
-                        return collection;
-                    }
-                    else if (type == "category") {
-                        string category = ReadAsString(reader);
-                        string item = ReadPropertyString(reader, "id");
-                        StoryItemCondition condition = DependencyCache.currentStoryItemConditionCollection.AddStoryItemCondition(DependencyCache.ruleSet.StoryItems.FindStoryItem(category, item));
-                        Read(reader, EndObject);
-                        Unindent();
-                        return condition;
-                    }
-                }
-                Unindent();
-            }
-            return null;
-        }
-
-        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer) {
-            StoryItemConditionBase condition = (StoryItemConditionBase)value;
-            if (condition is StoryItemsConditions collection) {
-                writer.WriteStartArray();
-                foreach (StoryItemConditionBase nestedCondition in collection.Conditions) {
-                    serializer.Serialize(writer, nestedCondition);
-                }
-                writer.WriteEndArray();
-            }
-            else if (condition is StoryItemConditionCollection conditionalCollection) {
-                writer.WriteStartObject();
-                writer.WritePropertyName("type"); writer.WriteValue(conditionalCollection.Type);
-                writer.WritePropertyName("conditions"); writer.WriteStartArray();
-                foreach (StoryItemConditionBase nestedCondition in conditionalCollection.Conditions) {
-                    serializer.Serialize(writer, nestedCondition);
-                }
-                writer.WriteEndArray();
-                writer.WriteEndObject();
-            }
-            else if (condition is StoryItemCondition nestedCondition) {
-                writer.WriteStartObject();
-                Formatting writerBackup = writer.Formatting; writer.Formatting = Formatting.None;
-                writer.WritePropertyName("category"); writer.WriteValue(nestedCondition.StoryItem.Category.Id);
-                writer.WritePropertyName("id"); writer.WriteValue(nestedCondition.StoryItem.Id);
-                writer.WriteEndObject();
-                writer.Formatting = writerBackup;
-            }
         }
     }
 

@@ -52,29 +52,29 @@ namespace PokemonTrackerEditor.Model {
         }
     }
 
-    public class StoryItem : StoryItemBase {
+    public class StoryItem : StoryItemBase, IConditionable {
         override public RuleSet Rules => Category.Parent.Rules;
         override public string Id { get => id; set { id = value; Category.Parent.Rules.ReportChange(); } }
-        public string Path => Category.Id + "." + Id;
+        public string Path => "story_items." + Category.Id + "." + Id;
         public StoryItemCategory Category { get; private set; }
 
         private string imageURL;
         public string ImageURL { get => imageURL; set { imageURL = value; Category.Parent.Rules.ReportChange(); } }
 
-        public List<StoryItemCondition> Dependencies { get; private set; }
+        public List<Condition> Dependencies { get; private set; }
         override public int DependencyCount => Dependencies.Count();
         public StoryItem(string id, StoryItemCategory category) : base(id) {
             Category = category;
-            Dependencies = new List<StoryItemCondition>();
+            Dependencies = new List<Condition>();
         }
 
-        public void AddDependency(StoryItemCondition dependency) {
+        public void AddDependency(Condition dependency) {
             if (!Dependencies.Contains(dependency)) {
                 Dependencies.Add(dependency);
             }
         }
 
-        public void RemoveDependency(StoryItemCondition dependency) {
+        public void RemoveDependency(Condition dependency) {
             Dependencies.Remove(dependency);
         }
 
@@ -86,8 +86,8 @@ namespace PokemonTrackerEditor.Model {
         }
 
         public override void Cleanup() {
-            foreach (StoryItemCondition cond in Dependencies) {
-                cond.StoryItemWasRemoved();
+            foreach (Condition cond in Dependencies) {
+                cond.ConditionableWasRemoved();
             }
             Dependencies.Clear();
             Dependencies = null;
