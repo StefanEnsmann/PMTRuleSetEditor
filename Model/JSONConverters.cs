@@ -397,7 +397,7 @@ namespace PokemonTrackerEditor.Model {
                         Read(reader, Property.Name(), EndObject);
                     }
                     if (conditionsCache.Count > 0) {
-                        DependencyCache.dependencyCollections.Add(entry.FullPath, conditionsCache);
+                        DependencyCache.dependencyCollections.Add(entry.Path, conditionsCache);
                     }
                     Unindent();
                     Read(reader, Property.Name(), EndObject); // EndObject or property from subclass

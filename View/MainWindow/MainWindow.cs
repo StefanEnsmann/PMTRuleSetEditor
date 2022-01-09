@@ -26,7 +26,7 @@ namespace PokemonTrackerEditor.View.MainWindow {
         private readonly ComboBoxEntry gameNameComboBox;
         private readonly Dictionary<string, CheckButton> languageButtons;
 
-        private readonly Dictionary<string, TreeView> locationConditionsTreeViews;
+        private readonly TreeView locationConditionTreeView;
 
         public void SetRuleSet(RuleSet ruleSet, string filename) {
             SetRuleSetPath(filename);
@@ -54,16 +54,11 @@ namespace PokemonTrackerEditor.View.MainWindow {
             if (entry != null) {
                 entry.Localization.Model.Refilter();
                 locationLocalizationTreeView.Model = entry.Localization.Model;
-                locationConditionsTreeViews["Items"].Model = entry.ItemsModel;
-                locationConditionsTreeViews["Pokémon"].Model = entry.PokemonModel;
-                locationConditionsTreeViews["Trades"].Model = entry.TradesModel;
-                locationConditionsTreeViews["Trainers"].Model = entry.TrainersModel;
-                locationConditionsTreeViews["Story Items"].Model = entry.StoryItemsConditions.Model;
+                locationConditionTreeView.Model = entry.Conditions.Model;
             }
             else {
-                foreach (TreeView treeView in locationConditionsTreeViews.Values) {
-                    treeView.Model = null;
-                }
+                locationLocalizationTreeView.Model = null;
+                locationConditionTreeView.Model = null;
             }
         }
 
@@ -271,7 +266,6 @@ namespace PokemonTrackerEditor.View.MainWindow {
             editorPaned.Add1(locationTreeBox);
 
             // Location editor
-            locationConditionsTreeViews = new Dictionary<string, TreeView>();
             Table locationEditorTable = new Table(3, 2, true);
 
             Frame locationLocalizationFrame = new Frame("Localization");

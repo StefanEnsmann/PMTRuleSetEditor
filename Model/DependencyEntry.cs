@@ -71,59 +71,22 @@ namespace PokemonTrackerEditor.Model {
     }
 
     abstract public class DependencyEntry : DependencyEntryBase, IMovable, ILocalizable {
-        public Dictionary<Check, TreeIter> ItemsConditions { get; private set; }
-        public Dictionary<Check, TreeIter> PokemonConditions { get; private set; }
-        public Dictionary<Check, TreeIter> TradesConditions { get; private set; }
-        public Dictionary<Check, TreeIter> TrainersConditions { get; private set; }
-        public StoryItemsConditions StoryItemsConditions { get; private set; }
         public Localization Localization { get; set; }
-
-        private readonly TreeStore itemsTreeStore;
-        private readonly TreeStore pokemonTreeStore;
-        private readonly TreeStore tradesTreeStore;
-        private readonly TreeStore trainersTreeStore;
-        public TreeModelSort ItemsModel { get; private set; }
-        public TreeModelSort PokemonModel { get; private set; }
-        public TreeModelSort TradesModel { get; private set; }
-        public TreeModelSort TrainersModel { get; private set; }
-
-        public int ConditionCount => ItemsConditions.Count + PokemonConditions.Count + TradesConditions.Count + TrainersConditions.Count + StoryItemsConditions.Count;
+        public Conditions Conditions { get; set; }
 
         public ILocationContainer Parent { get; private set; }
         public override RuleSet Rules => Parent.Rules;
 
-        public abstract string FullPath { get; }
+        public abstract string Path { get; }
 
         public DependencyEntry(string id, ILocationContainer parent) : base(id) {
-            ItemsConditions = new Dictionary<Check, TreeIter>();
-            PokemonConditions = new Dictionary<Check, TreeIter>();
-            TradesConditions = new Dictionary<Check, TreeIter>();
-            TrainersConditions = new Dictionary<Check, TreeIter>();
-            StoryItemsConditions = new StoryItemsConditions(this);
-            itemsTreeStore = new TreeStore(typeof(Check));
-            ItemsModel = new TreeModelSort(itemsTreeStore);
-            pokemonTreeStore = new TreeStore(typeof(Check));
-            PokemonModel = new TreeModelSort(pokemonTreeStore);
-            tradesTreeStore = new TreeStore(typeof(Check));
-            TradesModel = new TreeModelSort(tradesTreeStore);
-            trainersTreeStore = new TreeStore(typeof(Check));
-            TrainersModel = new TreeModelSort(trainersTreeStore);
             Parent = parent;
             Localization = new Localization(this);
+            Conditions = new Conditions(this);
         }
 
         virtual public void Cleanup() {
-            foreach (Check.Type checkType in Enum.GetValues(typeof(Check.Type))) {
-                Dictionary<Check, TreeIter> conditions = GetListForConditionType(checkType);
-                foreach (Check condition in conditions.Keys) {
-                    condition.RemoveDependingEntry(this);
-                }
-                TreeStore tree = GetTreeStoreForConditionType(checkType);
-                tree.Clear();
-                tree.Dispose();
-                conditions.Clear();
-            }
-            StoryItemsConditions.InvokeRemove();
+            Conditions.InvokeRemove();
             Localization.Cleanup();
             Parent = null;
         }
@@ -133,65 +96,6 @@ namespace PokemonTrackerEditor.Model {
             Parent.ChildWasRemoved(this);
             Rules.ReportChange();
             Cleanup();
-        }
-
-        public void ConditionWasRemoved(Check check) {
-            Dictionary<Check, TreeIter> list = GetListForConditionType(check.CheckType);
-            TreeIter iter = list[check];
-            GetTreeStoreForConditionType(check.CheckType).Remove(ref iter);
-            list.Remove(check);
-        }
-
-        public Dictionary<Check, TreeIter> GetListForConditionType(Check.Type condition) {
-            switch (condition) {
-                case Check.Type.ITEM:
-                    return ItemsConditions;
-                case Check.Type.POKEMON:
-                    return PokemonConditions;
-                case Check.Type.TRADE:
-                    return TradesConditions;
-                case Check.Type.TRAINER:
-                    return TrainersConditions;
-                default:
-                    return null;
-            }
-        }
-
-        private TreeStore GetTreeStoreForConditionType(Check.Type condition) {
-            switch (condition) {
-                case Check.Type.ITEM:
-                    return itemsTreeStore;
-                case Check.Type.POKEMON:
-                    return pokemonTreeStore;
-                case Check.Type.TRADE:
-                    return tradesTreeStore;
-                case Check.Type.TRAINER:
-                    return trainersTreeStore;
-                default:
-                    return null;
-            }
-        }
-
-        public bool AddCondition(Check condition) {
-            Dictionary<Check, TreeIter> conditionList = GetListForConditionType(condition.CheckType);
-            if (!conditionList.ContainsKey(condition)) {
-                TreeStore treeStore = GetTreeStoreForConditionType(condition.CheckType);
-                conditionList.Add(condition, treeStore.AppendValues(condition));
-                condition.AddDependingEntry(this);
-                Rules.ReportChange();
-                return true;
-            }
-            return false;
-        }
-
-        public void RemoveCondition(Check condition) {
-            Dictionary<Check, TreeIter> conditionList = GetListForConditionType(condition.CheckType);
-            TreeStore treeStore = GetTreeStoreForConditionType(condition.CheckType);
-            TreeIter iter = conditionList[condition];
-            treeStore.Remove(ref iter);
-            condition.RemoveDependingEntry(this);
-            conditionList.Remove(condition);
-            Rules.ReportChange();
         }
     }
 
@@ -211,7 +115,7 @@ namespace PokemonTrackerEditor.Model {
         public TreeIter TrainerIter { get; set; }
         public TreeIter LocationIter { get; set; }
 
-        public override string FullPath => this.LocationPath();
+        public override string Path => this.LocationPath();
 
         public Location(string id, ILocationContainer parent) : base(id, parent) {
             Items = new List<Check>();
@@ -319,37 +223,37 @@ namespace PokemonTrackerEditor.Model {
     }
 
     [JsonConverter(typeof(CheckConverter))]
-    public class Check : DependencyEntry {
+    public class Check : DependencyEntry, IConditionable {
         public enum Type {
             ITEM, POKEMON, TRADE, TRAINER
         }
 
         public Type CheckType { get; private set; }
 
-        private readonly List<DependencyEntry> dependingEntries;
+        private readonly List<Condition> dependingEntries;
         public int DependingEntryCount => dependingEntries.Count;
-        public override string FullPath => (Parent as Location).LocationPath() + "." + CheckType.ToString().ToLower() + (CheckType == Type.POKEMON ? "." : "s.") + Id;
+        public override string Path => (Parent as Location).LocationPath() + "." + CheckType.ToString().ToLower() + (CheckType == Type.POKEMON ? "." : "s.") + Id;
 
         public Check(string id, Type type, Location parent) : base(id, parent) {
             CheckType = type;
-            dependingEntries = new List<DependencyEntry>();
+            dependingEntries = new List<Condition>();
         }
 
         public override void Cleanup() {
-            foreach (DependencyEntry dependingEntry in dependingEntries) {
-                dependingEntry.ConditionWasRemoved(this);
+            foreach (Condition dependingEntry in dependingEntries) {
+                dependingEntry.ConditionableWasRemoved();
             }
             dependingEntries.Clear();
             base.Cleanup();
         }
 
-        public void AddDependingEntry(DependencyEntry entry) {
-            dependingEntries.Add(entry);
+        public void AddDependency(Condition condition) {
+            dependingEntries.Add(condition);
             Rules.ReportChange();
         }
 
-        public void RemoveDependingEntry(DependencyEntry entry) {
-            while (dependingEntries.Remove(entry)) ;
+        public void RemoveDependency(Condition condition) {
+            while (dependingEntries.Remove(condition)) ;
             Rules.ReportChange();
         }
     }
