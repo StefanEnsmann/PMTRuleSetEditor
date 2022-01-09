@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 
 using Gtk;
 
+using Newtonsoft.Json;
+
 namespace PokemonTrackerEditor.Model {
     public interface IConditionable {
         string Path { get; }
@@ -13,6 +15,7 @@ namespace PokemonTrackerEditor.Model {
         void RemoveDependency(Condition condition);
     }
 
+    [JsonConverter(typeof(ConditionsConverter))]
     abstract public class ConditionBase : IEquatable<ConditionBase> {
         public virtual ConditionCollection Parent { get; private set; }
         public virtual RuleSet Rules => Parent.Rules;
@@ -46,8 +49,24 @@ namespace PokemonTrackerEditor.Model {
         public bool Equals(ConditionBase conditionBase) {
             return this == conditionBase;
         }
+
+        public IConditionable ResolvePath(string path) {
+            List<string> segments = path.Split('.').ToList();
+            string first = segments.First();
+            segments.RemoveAt(0);
+            if (first.Equals("locations")) {
+                return Rules.ResolvePath(segments) as Check;
+            }
+            else if (first.Equals("story_items")) {
+                return Rules.StoryItems.FindStoryItem(segments[0], segments[1]);
+            }
+            else {
+                throw new ArgumentException("Could not resolve path: " + path);
+            }
+        }
     }
 
+    [JsonConverter(typeof(ConditionsConverter))]
     public class Condition : ConditionBase {
         public IConditionable Conditionable { get; private set; }
         public string Id => Conditionable?.Path;
@@ -69,6 +88,7 @@ namespace PokemonTrackerEditor.Model {
         }
     }
 
+    [JsonConverter(typeof(ConditionsConverter))]
     public class ConditionCollection : ConditionBase {
         public enum LogicalType {
             AND, OR, NOT
@@ -174,6 +194,7 @@ namespace PokemonTrackerEditor.Model {
         }
     }
 
+    [JsonConverter(typeof(ConditionsConverter))]
     public class Conditions : ConditionCollection {
         public TreeStore Model { get; private set; }
 
