@@ -49,9 +49,9 @@ namespace PokemonTrackerEditor.Model {
                     foreach (CondCache cache in Children) {
                         cache.Clear();
                     }
+                    Children.Clear();
+                    Children = null;
                 }
-                Children.Clear();
-                Children = null;
                 Path = null;
             }
         }
@@ -442,11 +442,11 @@ namespace PokemonTrackerEditor.Model {
                 Read(reader, Property.Name("localization"));
                 entry.Localization.Cleanup();
                 entry.Localization = (Localization)serializer.Deserialize(reader, typeof(Localization));
-                Read(reader, Property.Name("conditions"), Property.Name("items"), Property.Name("pokemon"), Property.Name("trades"), Property.Name("trainers"), EndObject); // "conditions" or EndObject
+                Read(reader, Property.Name("conditions"), Property.Name("items"), Property.Name("pokemon"), Property.Name("trades"), Property.Name("trainers"), Property.Name("locations"), EndObject); // "conditions" or EndObject
                 if (reader.TokenType == JsonToken.PropertyName && StringValue(reader) == "conditions") {
                     Read(reader, StartObject);
                     serializer.Deserialize(reader, typeof(Conditions));
-                    Read(reader, Property.Name("conditions"), Property.Name("items"), Property.Name("pokemon"), Property.Name("trades"), Property.Name("trainers"), EndObject); // "conditions" or EndObject
+                    Read(reader, Property.Name("conditions"), Property.Name("items"), Property.Name("pokemon"), Property.Name("trades"), Property.Name("trainers"), Property.Name("locations"), EndObject); // "conditions" or EndObject
                 }
                 Unindent();
                 return entry;
@@ -490,7 +490,7 @@ namespace PokemonTrackerEditor.Model {
                     Read(reader, StartArray);
                     Type t = DepCache.nextType == DepCache.NextType.LOCATION ? typeof(Location) : typeof(Check);
                     while (serializer.Deserialize(reader, t) != null) ; // EndArray afterwards
-                    Read(reader, EndObject, Property.Name("items"), Property.Name("pokemon"), Property.Name("trades"), Property.Name("trainers"));
+                    Read(reader, EndObject, Property.Name("items"), Property.Name("pokemon"), Property.Name("trades"), Property.Name("trainers"), Property.Name("locations"));
                 }
                 DepCache.currentLocationContainer = parentContainer;
                 Unindent();
@@ -555,6 +555,7 @@ namespace PokemonTrackerEditor.Model {
             base.ReadJson(reader, objectType, existingValue, serializer);
             Indent();
             string logic = ReadPropertyString(reader, "logic");
+            List<DepCache.CondCache> backupCondCacheList = DepCache.currentCondCacheList;
             if (objectType == typeof(Conditions)) {
                 if (!logic.Equals("AND")) {
                     throw new ArgumentException("Top level condition containers need to be of logic type 'AND'! Got " + logic);
@@ -582,6 +583,7 @@ namespace PokemonTrackerEditor.Model {
                 Read(reader, EndArray, StartObject, String);
             }
             Read(reader, EndObject);
+            DepCache.currentCondCacheList = backupCondCacheList;
             Unindent();
             return null;
         }
