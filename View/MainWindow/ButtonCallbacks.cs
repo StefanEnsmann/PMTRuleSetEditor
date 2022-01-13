@@ -126,20 +126,32 @@ namespace PokemonTrackerEditor.View.MainWindow {
             }
         }
 
-        public static void OnAddStoryItemConditionClick(MainWindow window, TreeView treeView) {
+        public static void OnAddConditionClick(MainWindow window, TreeView treeView, bool wantStoryItem, Check.Type checkType=Check.Type.ITEM) {
             if (window.CurrentLocationSelection != null) {
-                StoryItem storyItem = CustomDialog.SelectStoryItem(window, "Select story item", window.Main.Rules.StoryItems.Model);
-                if (storyItem != null) {
+                IConditionable conditionable = wantStoryItem
+                    ? CustomDialog.SelectStoryItem(window, "Select story item", window.Main.Rules.StoryItems.Model)
+                    : (IConditionable)CustomDialog.SelectCheck(window, "Select condition", window.Main.Rules.Model, checkType);
+                if (conditionable != null) {
                     ConditionCollection collection = GetSelectedStoryItemConditionContainer(window, treeView);
-                    collection.AddCondition(storyItem);
+                    collection.AddCondition(conditionable);
                 }
             }
         }
 
-        public static void OnAddConditionCollectionClick(MainWindow window, TreeView treeView, ConditionCollection.LogicalType type) {
+        public static void OnConvertCollectionClick(MainWindow window, TreeView treeView, ConditionCollection.LogicalType type) {
             if (window.CurrentLocationSelection != null) {
                 ConditionCollection collection = GetSelectedStoryItemConditionContainer(window, treeView);
-                collection.AddCollection(type);
+                if (type != ConditionCollection.LogicalType.NOT || collection.Count < 2) {
+                    collection.Type = type;
+                    treeView.QueueDraw();
+                }
+            }
+        }
+
+        public static void OnAddConditionCollectionClick(MainWindow window, TreeView treeView) {
+            if (window.CurrentLocationSelection != null) {
+                ConditionCollection collection = GetSelectedStoryItemConditionContainer(window, treeView);
+                collection.AddCollection(ConditionCollection.LogicalType.AND);
             }
         }
 

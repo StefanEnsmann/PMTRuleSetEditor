@@ -95,7 +95,7 @@ namespace PokemonTrackerEditor.Model {
         }
 
         public List<ConditionBase> Conditions;
-        public LogicalType Type { get; private set; }
+        public LogicalType Type { get; set; }
         public int Index { get; private set; }
         public bool CanAddCondition => !(Type == LogicalType.NOT && Conditions.Count > 0);
         public override string Path => Parent.Path + "." + Index;

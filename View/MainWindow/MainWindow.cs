@@ -200,30 +200,31 @@ namespace PokemonTrackerEditor.View.MainWindow {
             locationTreeBox.PackStart(locationTreeViewScrolledWindow, true, true, 0);
 
             // Location controls
+            int insertIndex = 0;
             Toolbar locationTreeToolbar = new Toolbar();
             ToolButton addCheckButton = new ToolButton(Stock.Add) { Label = "Location" };
             addCheckButton.Clicked += (object sender, EventArgs args) => { ButtonCallbacks.OnAddLocationClick(this); };
-            locationTreeToolbar.Insert(addCheckButton, 0);
-            locationTreeToolbar.Insert(new SeparatorToolItem(), 1);
+            locationTreeToolbar.Insert(addCheckButton, insertIndex++);
+            locationTreeToolbar.Insert(new SeparatorToolItem(), insertIndex++);
             addCheckButton = new ToolButton(Stock.Add) { Label = "Sub location" };
             addCheckButton.Clicked += (object sender, EventArgs args) => { ButtonCallbacks.OnAddLocationClick(this, false); };
-            locationTreeToolbar.Insert(addCheckButton, 2);
-            locationTreeToolbar.Insert(CreateCheckButton("Item", Check.Type.ITEM), 3);
-            locationTreeToolbar.Insert(CreateCheckButton("Pokémon", Check.Type.POKEMON), 4);
-            locationTreeToolbar.Insert(CreateCheckButton("Trade", Check.Type.TRADE), 5);
-            locationTreeToolbar.Insert(CreateCheckButton("Trainer", Check.Type.TRAINER), 6);
+            locationTreeToolbar.Insert(addCheckButton, insertIndex++);
+            locationTreeToolbar.Insert(CreateCheckButton("Item", Check.Type.ITEM), insertIndex++);
+            locationTreeToolbar.Insert(CreateCheckButton("Pokémon", Check.Type.POKEMON), insertIndex++);
+            locationTreeToolbar.Insert(CreateCheckButton("Trade", Check.Type.TRADE), insertIndex++);
+            locationTreeToolbar.Insert(CreateCheckButton("Trainer", Check.Type.TRAINER), insertIndex++);
 
             ToolButton removeSelectedButton = new ToolButton(Stock.Remove) { Label = "Remove" };
             removeSelectedButton.Clicked += (object sender, EventArgs args) => { ButtonCallbacks.OnRemoveLocationOrCheckClick(this); };
-            locationTreeToolbar.Insert(removeSelectedButton, 7);
+            locationTreeToolbar.Insert(removeSelectedButton, insertIndex++);
 
             ToolButton moveLocationUpButton = new ToolButton(Stock.GoUp) { Label = "Move up" };
             moveLocationUpButton.Clicked += (object sender, EventArgs args) => { ButtonCallbacks.OnMoveUpLocationClick(this); };
-            locationTreeToolbar.Insert(moveLocationUpButton, 8);
+            locationTreeToolbar.Insert(moveLocationUpButton, insertIndex++);
 
             ToolButton moveLocationDownButton = new ToolButton(Stock.GoDown) { Label = "Move down" };
             moveLocationDownButton.Clicked += (object sender, EventArgs args) => { ButtonCallbacks.OnMoveDownLocationClick(this); };
-            locationTreeToolbar.Insert(moveLocationDownButton, 9);
+            locationTreeToolbar.Insert(moveLocationDownButton, insertIndex++);
 
             locationTreeBox.PackStart(locationTreeToolbar, false, false, 0);
 
@@ -264,22 +265,40 @@ namespace PokemonTrackerEditor.View.MainWindow {
             ScrolledWindow locationConditionsScrolledWindow = new ScrolledWindow { locationConditionsTreeView };
             locationConditionsBox.PackStart(locationConditionsScrolledWindow, true, true, 0);
 
+            insertIndex = 0;
             Toolbar locationConditionsControls = new Toolbar();
-            ToolButton addStoryItemCondition = new ToolButton(Stock.Add) { Label = "Item" };
-            addStoryItemCondition.Clicked += (object sender, EventArgs args) => { ButtonCallbacks.OnAddStoryItemConditionClick(this, locationConditionsTreeView); };
-            locationConditionsControls.Insert(addStoryItemCondition, 0);
-            ToolButton addStoryItemANDCollection = new ToolButton(Stock.Add) { Label = "AND" };
-            addStoryItemANDCollection.Clicked += (object sender, EventArgs args) => { ButtonCallbacks.OnAddConditionCollectionClick(this, locationConditionsTreeView, ConditionCollection.LogicalType.AND); };
-            locationConditionsControls.Insert(addStoryItemANDCollection, 1);
-            ToolButton addStoryItemORCollection = new ToolButton(Stock.Add) { Label = "OR" };
-            addStoryItemORCollection.Clicked += (object sender, EventArgs args) => { ButtonCallbacks.OnAddConditionCollectionClick(this, locationConditionsTreeView, ConditionCollection.LogicalType.OR); };
-            locationConditionsControls.Insert(addStoryItemORCollection, 2);
-            ToolButton addStoryItemNOTCollection = new ToolButton(Stock.Add) { Label = "NOT" };
-            addStoryItemNOTCollection.Clicked += (object sender, EventArgs args) => { ButtonCallbacks.OnAddConditionCollectionClick(this, locationConditionsTreeView, ConditionCollection.LogicalType.NOT); };
-            locationConditionsControls.Insert(addStoryItemNOTCollection, 3);
-            ToolButton removeStoryItemCondition = new ToolButton(Stock.Remove);
-            removeStoryItemCondition.Clicked += (object sender, EventArgs args) => { ButtonCallbacks.OnRemoveStoryItemConditionClick(this, locationConditionsTreeView); };
-            locationConditionsControls.Insert(removeStoryItemCondition, 4);
+            ToolButton addStoryItemCondition = new ToolButton(Stock.Add) { Label = "Story Item" };
+            addStoryItemCondition.Clicked += (object sender, EventArgs args) => { ButtonCallbacks.OnAddConditionClick(this, locationConditionsTreeView, true); };
+            locationConditionsControls.Insert(addStoryItemCondition, insertIndex++);
+            ToolButton addItemCondition = new ToolButton(Stock.Add) { Label = "Item" };
+            addItemCondition.Clicked += (object sender, EventArgs args) => { ButtonCallbacks.OnAddConditionClick(this, locationConditionsTreeView, false, Check.Type.ITEM); };
+            locationConditionsControls.Insert(addItemCondition, insertIndex++);
+            ToolButton addPokemonCondition = new ToolButton(Stock.Add) { Label = "Pokémon" };
+            addPokemonCondition.Clicked += (object sender, EventArgs args) => { ButtonCallbacks.OnAddConditionClick(this, locationConditionsTreeView, false, Check.Type.POKEMON); };
+            locationConditionsControls.Insert(addPokemonCondition, insertIndex++);
+            ToolButton addTradeCondition = new ToolButton(Stock.Add) { Label = "Trade" };
+            addTradeCondition.Clicked += (object sender, EventArgs args) => { ButtonCallbacks.OnAddConditionClick(this, locationConditionsTreeView, false, Check.Type.TRADE); };
+            locationConditionsControls.Insert(addTradeCondition, insertIndex++);
+            ToolButton addTrainerCondition = new ToolButton(Stock.Add) { Label = "Trainer" };
+            addTrainerCondition.Clicked += (object sender, EventArgs args) => { ButtonCallbacks.OnAddConditionClick(this, locationConditionsTreeView, false, Check.Type.TRAINER); };
+            locationConditionsControls.Insert(addTrainerCondition, insertIndex++);
+            ToolButton addConditionCollection = new ToolButton(Stock.Add) { Label = "Group" };
+            addConditionCollection.Clicked += (object sender, EventArgs args) => { ButtonCallbacks.OnAddConditionCollectionClick(this, locationConditionsTreeView); };
+            locationConditionsControls.Insert(addConditionCollection, insertIndex++);
+            locationConditionsControls.Insert(new SeparatorToolItem(), insertIndex++);
+            ToolButton convertCollectionToAnd = new ToolButton(Stock.Convert) { Label = "AND" };
+            convertCollectionToAnd.Clicked += (object sender, EventArgs args) => { ButtonCallbacks.OnConvertCollectionClick(this, locationConditionsTreeView, ConditionCollection.LogicalType.AND); };
+            locationConditionsControls.Insert(convertCollectionToAnd, insertIndex++);
+            ToolButton convertCollectionToOr = new ToolButton(Stock.Convert) { Label = "OR" };
+            convertCollectionToOr.Clicked += (object sender, EventArgs args) => { ButtonCallbacks.OnConvertCollectionClick(this, locationConditionsTreeView, ConditionCollection.LogicalType.OR); };
+            locationConditionsControls.Insert(convertCollectionToOr, insertIndex++);
+            ToolButton convertCollectionToNot = new ToolButton(Stock.Convert) { Label = "NOT" };
+            convertCollectionToNot.Clicked += (object sender, EventArgs args) => { ButtonCallbacks.OnConvertCollectionClick(this, locationConditionsTreeView, ConditionCollection.LogicalType.NOT); };
+            locationConditionsControls.Insert(convertCollectionToNot, insertIndex++);
+            locationConditionsControls.Insert(new SeparatorToolItem(), insertIndex++);
+            ToolButton removeCondition = new ToolButton(Stock.Remove);
+            removeCondition.Clicked += (object sender, EventArgs args) => { ButtonCallbacks.OnRemoveStoryItemConditionClick(this, locationConditionsTreeView); };
+            locationConditionsControls.Insert(removeCondition, insertIndex++);
 
             locationConditionsBox.PackStart(locationConditionsControls, false, false, 0);
 
@@ -318,22 +337,23 @@ namespace PokemonTrackerEditor.View.MainWindow {
             storyItemsScrolledWindow.Add(storyItemsTreeView);
             storyItemsBox.PackStart(storyItemsScrolledWindow, true, true, 0);
 
+            insertIndex = 0;
             Toolbar storyItemsToolbar = new Toolbar();
             ToolButton addCategoryButton = new ToolButton(Stock.Add) { Label = "Category" };
             addCategoryButton.Clicked += (object sender, EventArgs args) => { ButtonCallbacks.OnAddStoryItemCategoryClick(this); };
-            storyItemsToolbar.Insert(addCategoryButton, 0);
+            storyItemsToolbar.Insert(addCategoryButton, insertIndex++);
             ToolButton addStoryItemButton = new ToolButton(Stock.Add) { Label = "Story Item" };
             addStoryItemButton.Clicked += (object sender, EventArgs args) => { ButtonCallbacks.OnAddStoryItemClick(this); };
-            storyItemsToolbar.Insert(addStoryItemButton, 1);
+            storyItemsToolbar.Insert(addStoryItemButton, insertIndex++);
             ToolButton removeSelectedStoryItemButton = new ToolButton(Stock.Remove) { Label = "Remove" };
             removeSelectedStoryItemButton.Clicked += (object sender, EventArgs args) => { ButtonCallbacks.OnRemoveStoryItemClick(this); };
-            storyItemsToolbar.Insert(removeSelectedStoryItemButton, 2);
+            storyItemsToolbar.Insert(removeSelectedStoryItemButton, insertIndex++);
             ToolButton moveUpButton = new ToolButton(Stock.GoUp) { Label = "Move Up" };
             moveUpButton.Clicked += (object sender, EventArgs args) => { ButtonCallbacks.OnMoveUpStoryItemClick(this); };
-            storyItemsToolbar.Insert(moveUpButton, 3);
+            storyItemsToolbar.Insert(moveUpButton, insertIndex++);
             ToolButton moveDownButton = new ToolButton(Stock.GoDown) { Label = "Move Down" };
             moveDownButton.Clicked += (object sender, EventArgs args) => { ButtonCallbacks.OnMoveDownStoryItemClick(this); };
-            storyItemsToolbar.Insert(moveDownButton, 4);
+            storyItemsToolbar.Insert(moveDownButton, insertIndex++);
 
             storyItemsBox.PackStart(storyItemsToolbar, false, false, 0);
             storyItemsPaned.Add1(storyItemsBox);
