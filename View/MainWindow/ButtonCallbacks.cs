@@ -98,25 +98,9 @@ namespace PokemonTrackerEditor.View.MainWindow {
             }
         }
 
-        public static void OnAddConditionClick(MainWindow window, Check.Type type) {
-            if (window.CurrentLocationSelection != null) {
-                Check selectedCheck = CustomDialog.SelectCheck(window, "Select check", window.Main.Rules.Model, type);
-                if (selectedCheck != null) {
-                    window.CurrentLocationSelection.AddCondition(selectedCheck);
-                }
-            }
-        }
-
-        public static void OnRemoveConditionClick(MainWindow window, TreeView treeView) {
+        private static ConditionBase GetSelectedStoryItemCondition(MainWindow window, TreeView treeView) {
             treeView.Selection.GetSelected(out ITreeModel model, out TreeIter iter);
-            if (window.CurrentLocationSelection != null && model.GetValue(iter, 0) is Check check) {
-                window.CurrentLocationSelection.RemoveCondition(check);
-            }
-        }
-
-        private static StoryItemConditionBase GetSelectedStoryItemCondition(MainWindow window, TreeView treeView) {
-            treeView.Selection.GetSelected(out ITreeModel model, out TreeIter iter);
-            if (!iter.Equals(TreeIter.Zero) && model.GetValue(iter, 0) is StoryItemConditionBase selection) {
+            if (!iter.Equals(TreeIter.Zero) && model.GetValue(iter, 0) is ConditionBase selection) {
                 return selection;
             }
             else {
@@ -124,13 +108,13 @@ namespace PokemonTrackerEditor.View.MainWindow {
             }
         }
 
-        private static StoryItemConditionCollection GetSelectedStoryItemConditionContainer(MainWindow window, TreeView treeView) {
-            StoryItemConditionBase selection = GetSelectedStoryItemCondition(window, treeView);
+        private static ConditionCollection GetSelectedStoryItemConditionContainer(MainWindow window, TreeView treeView) {
+            ConditionBase selection = GetSelectedStoryItemCondition(window, treeView);
             if (selection != null) {
-                if (selection is StoryItemCondition selectedItem) {
-                    return selectedItem.Container;
+                if (selection is Condition selectedItem) {
+                    return selectedItem.Parent;
                 }
-                else if (selection is StoryItemConditionCollection collection) {
+                else if (selection is ConditionCollection collection) {
                     return collection;
                 }
                 else {
@@ -138,45 +122,43 @@ namespace PokemonTrackerEditor.View.MainWindow {
                 }
             }
             else {
-                return window.CurrentLocationSelection.StoryItemsConditions;
+                return window.CurrentLocationSelection.Conditions;
             }
         }
 
-        public static void OnAddStoryItemConditionClick(MainWindow window, TreeView treeView) {
+        public static void OnAddConditionClick(MainWindow window, TreeView treeView, bool wantStoryItem, Check.Type checkType=Check.Type.ITEM) {
             if (window.CurrentLocationSelection != null) {
-                StoryItem storyItem = CustomDialog.SelectStoryItem(window, "Select story item", window.Main.Rules.StoryItems.Model);
-                if (storyItem != null) {
-                    StoryItemConditionCollection collection = GetSelectedStoryItemConditionContainer(window, treeView);
-                    collection.AddStoryItemCondition(storyItem);
+                IConditionable conditionable = wantStoryItem
+                    ? CustomDialog.SelectStoryItem(window, "Select story item", window.Main.Rules.StoryItems.Model)
+                    : (IConditionable)CustomDialog.SelectCheck(window, "Select condition", window.Main.Rules.Model, checkType);
+                if (conditionable != null) {
+                    ConditionCollection collection = GetSelectedStoryItemConditionContainer(window, treeView);
+                    collection.AddCondition(conditionable);
                 }
             }
         }
 
-        public static void OnAddStoryItemConditionANDCollectionClick(MainWindow window, TreeView treeView) {
+        public static void OnConvertCollectionClick(MainWindow window, TreeView treeView, ConditionCollection.LogicalType type) {
             if (window.CurrentLocationSelection != null) {
-                StoryItemConditionCollection collection = GetSelectedStoryItemConditionContainer(window, treeView);
-                collection.AddANDCollection();
+                ConditionCollection collection = GetSelectedStoryItemConditionContainer(window, treeView);
+                if (type != ConditionCollection.LogicalType.NOT || collection.Count < 2) {
+                    collection.Type = type;
+                    treeView.QueueDraw();
+                }
             }
         }
 
-        public static void OnAddStoryItemConditionORCollectionClick(MainWindow window, TreeView treeView) {
+        public static void OnAddConditionCollectionClick(MainWindow window, TreeView treeView) {
             if (window.CurrentLocationSelection != null) {
-                StoryItemConditionCollection collection = GetSelectedStoryItemConditionContainer(window, treeView);
-                collection.AddORCollection();
-            }
-        }
-
-        public static void OnAddStoryItemConditionNOTCollectionClick(MainWindow window, TreeView treeView) {
-            if (window.CurrentLocationSelection != null) {
-                StoryItemConditionCollection collection = GetSelectedStoryItemConditionContainer(window, treeView);
-                collection.AddNOTCollection();
+                ConditionCollection collection = GetSelectedStoryItemConditionContainer(window, treeView);
+                collection.AddCollection(ConditionCollection.LogicalType.AND);
             }
         }
 
         public static void OnRemoveStoryItemConditionClick(MainWindow window, TreeView treeView) {
             if (window.CurrentLocationSelection != null) {
-                StoryItemConditionBase selection = GetSelectedStoryItemCondition(window, treeView);
-                if (!(selection is StoryItemsConditions)) {
+                ConditionBase selection = GetSelectedStoryItemCondition(window, treeView);
+                if (selection != null && !(selection is Conditions)) {
                     selection.InvokeRemove();
                 }
             }

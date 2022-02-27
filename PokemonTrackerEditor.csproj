@@ -72,6 +72,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Model\Conditions.cs" />
     <Compile Include="Model\DependencyEntry.cs" />
     <Compile Include="MainProg.cs" />
     <Compile Include="Model\Interfaces.cs" />
@@ -81,7 +82,6 @@
     <Compile Include="Model\Pokedex.cs" />
     <Compile Include="Model\RuleSet.cs" />
     <Compile Include="Model\StoryItems.cs" />
-    <Compile Include="Model\StoryItemsConditions.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="View\MainWindow\MainWindow.cs" />
     <Compile Include="View\MainWindow\ButtonCallbacks.cs" />
