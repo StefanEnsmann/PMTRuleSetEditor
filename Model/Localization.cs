@@ -44,11 +44,11 @@ namespace PokemonTrackerEditor.Model {
             }
             treeSort = new TreeModelSort(treeStore);
             Model = new TreeModelFilter(treeSort, null) {
-                VisibleFunc = new TreeModelFilterVisibleFunc((TreeModel m, TreeIter i) => FilterLanguageList(m, i, localizable.Rules))
+                VisibleFunc = new TreeModelFilterVisibleFunc((ITreeModel m, TreeIter i) => FilterLanguageList(m, i, localizable.Rules))
             };
         }
 
-        private static bool FilterLanguageList(TreeModel model, TreeIter iter, RuleSet rules) {
+        private static bool FilterLanguageList(ITreeModel model, TreeIter iter, RuleSet rules) {
             LocalizationEntry current = (LocalizationEntry)model.GetValue(iter, 0);
             return rules.ActiveLanguages.Contains(current.Code);
         }

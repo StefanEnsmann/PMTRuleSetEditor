@@ -47,7 +47,7 @@ namespace PokemonTrackerEditor.Model {
             return a != null && b != null ? string.Compare(a.Id, b.Id) : a != null ? -1 : b != null ? 1 : 0;
         }
 
-        public static int Compare(TreeModel model, TreeIter a, TreeIter b) {
+        public static int Compare(ITreeModel model, TreeIter a, TreeIter b) {
             return Compare((StoryItemConditionBase)model.GetValue(a, 0), (StoryItemConditionBase)model.GetValue(b, 0));
         }
     }

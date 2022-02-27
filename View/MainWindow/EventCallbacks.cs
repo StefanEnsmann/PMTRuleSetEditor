@@ -27,7 +27,7 @@ namespace PokemonTrackerEditor.View.MainWindow {
             window.UpdateLocationEditorSelection(currentSelection);
         }
 
-        public static void OnTreeViewSizeChanged(ScrolledWindow window, IMovable iter, TreeModel model) {
+        public static void OnTreeViewSizeChanged(ScrolledWindow window, IMovable iter, ITreeModel model) {
             if (iter != null) {
                 TreePath path = model.GetPath(iter.Iter);
                 using (TreeView treeView = window.Child as TreeView) {
@@ -74,7 +74,7 @@ namespace PokemonTrackerEditor.View.MainWindow {
         }
 
         public static void OnLocalizationValueEdited(MainWindow window, TreePath path, string newText, bool location = true) {
-            TreeModel model = location ? window.CurrentLocationSelection.Localization.Model : window.CurrentStoryItemSelection.Localization.Model;
+            ITreeModel model = location ? window.CurrentLocationSelection.Localization.Model : window.CurrentStoryItemSelection.Localization.Model;
             model.GetIter(out TreeIter iter, path);
             LocalizationEntry entry = (LocalizationEntry)model.GetValue(iter, 0);
             entry.Value = newText;

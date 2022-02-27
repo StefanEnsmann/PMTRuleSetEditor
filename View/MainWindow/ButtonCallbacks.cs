@@ -108,14 +108,14 @@ namespace PokemonTrackerEditor.View.MainWindow {
         }
 
         public static void OnRemoveConditionClick(MainWindow window, TreeView treeView) {
-            treeView.Selection.GetSelected(out TreeModel model, out TreeIter iter);
+            treeView.Selection.GetSelected(out ITreeModel model, out TreeIter iter);
             if (window.CurrentLocationSelection != null && model.GetValue(iter, 0) is Check check) {
                 window.CurrentLocationSelection.RemoveCondition(check);
             }
         }
 
         private static StoryItemConditionBase GetSelectedStoryItemCondition(MainWindow window, TreeView treeView) {
-            treeView.Selection.GetSelected(out TreeModel model, out TreeIter iter);
+            treeView.Selection.GetSelected(out ITreeModel model, out TreeIter iter);
             if (!iter.Equals(TreeIter.Zero) && model.GetValue(iter, 0) is StoryItemConditionBase selection) {
                 return selection;
             }

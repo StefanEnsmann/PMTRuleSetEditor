@@ -18,11 +18,11 @@ namespace PokemonTrackerEditor.View {
         public static ButtonType YNCDialog(Window parent, string message, string title) {
             Dialog dlg = new Dialog(title, parent, DialogFlags.DestroyWithParent);
             Label lbl = new Label(message);
-            dlg.VBox.PackStart(lbl);
+            dlg.ContentArea.PackStart(lbl, true, true, 5);
             dlg.AddButton(Stock.Yes, (int)ButtonType.YES);
             dlg.AddButton(Stock.No, (int)ButtonType.NO);
             dlg.AddButton(Stock.Cancel, (int)ButtonType.CANCEL);
-            dlg.VBox.ShowAll();
+            dlg.ContentArea.ShowAll();
             int response = dlg.Run();
             dlg.Destroy();
             return (ButtonType)response;
@@ -30,9 +30,9 @@ namespace PokemonTrackerEditor.View {
 
         public static void MessageDialog(Window parent, string message, string title) {
             Dialog dlg = new Dialog(title, parent, DialogFlags.DestroyWithParent);
-            dlg.VBox.PackStart(new Label(message));
+            dlg.ContentArea.PackStart(new Label(message), true, true, 5);
             dlg.AddButton(Stock.Ok, 0);
-            dlg.VBox.ShowAll();
+            dlg.ContentArea.ShowAll();
             dlg.Run();
             dlg.Destroy();
         }
@@ -51,7 +51,7 @@ namespace PokemonTrackerEditor.View {
             return response == (int)ResponseType.Accept ? ret : null;
         }
 
-        private static bool FilterCheckList(TreeModel model, TreeIter iter, Check.Type type) {
+        private static bool FilterCheckList(ITreeModel model, TreeIter iter, Check.Type type) {
             DependencyEntryBase current = (DependencyEntryBase)model.GetValue(iter, 0);
             if (current != null) {
                 if (current is LocationCategory locCat) {
@@ -82,20 +82,20 @@ namespace PokemonTrackerEditor.View {
             }
         }
 
-        public static Check SelectCheck(Window parent, string title, TreeModel model, Check.Type type) {
+        public static Check SelectCheck(Window parent, string title, ITreeModel model, Check.Type type) {
             Dialog dlg = new Dialog(title, parent, DialogFlags.DestroyWithParent);
-            dlg.VBox.PackStart(new Label("Select check:"));
+            dlg.ContentArea.PackStart(new Label("Select check:"), true, true, 5);
             TreeModelFilter filter = new TreeModelFilter(model, null) {
-                VisibleFunc = new TreeModelFilterVisibleFunc((TreeModel m, TreeIter i) => FilterCheckList(m, i, type))
+                VisibleFunc = new TreeModelFilterVisibleFunc((ITreeModel m, TreeIter i) => FilterCheckList(m, i, type))
             };
             ComboBox cb = new ComboBox(filter);
             CellRendererText cbCellRenderer = new CellRendererText();
             cb.PackStart(cbCellRenderer, true);
             cb.SetCellDataFunc(cbCellRenderer, new CellLayoutDataFunc(MainWindow.Renderers.CheckComboBoxCell));
-            dlg.VBox.PackStart(cb);
+            dlg.ContentArea.PackStart(cb, true, true, 5);
             dlg.AddButton(Stock.Ok, 0);
             dlg.AddButton(Stock.Cancel, 1);
-            dlg.VBox.ShowAll();
+            dlg.ContentArea.ShowAll();
             int response = dlg.Run();
             cb.GetActiveIter(out TreeIter iter);
             dlg.Destroy();
@@ -107,17 +107,17 @@ namespace PokemonTrackerEditor.View {
             }
         }
 
-        public static StoryItem SelectStoryItem(Window parent, string title, TreeModel model) {
+        public static StoryItem SelectStoryItem(Window parent, string title, ITreeModel model) {
             Dialog dlg = new Dialog(title, parent, DialogFlags.DestroyWithParent);
-            dlg.VBox.PackStart(new Label("Select story item:"));
+            dlg.ContentArea.PackStart(new Label("Select story item:"), true, true, 5);
             ComboBox cb = new ComboBox(model);
             CellRendererText cbCellRenderer = new CellRendererText();
             cb.PackStart(cbCellRenderer, true);
             cb.SetCellDataFunc(cbCellRenderer, new CellLayoutDataFunc(MainWindow.Renderers.StoryItemComboBoxCell));
-            dlg.VBox.PackStart(cb);
+            dlg.ContentArea.PackStart(cb, true, true, 5);
             dlg.AddButton(Stock.Ok, 0);
             dlg.AddButton(Stock.Cancel, 1);
-            dlg.VBox.ShowAll();
+            dlg.ContentArea.ShowAll();
             int response = dlg.Run();
             cb.GetActiveIter(out TreeIter iter);
             dlg.Destroy();

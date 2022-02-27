@@ -23,7 +23,7 @@ namespace PokemonTrackerEditor.View.MainWindow {
         public TreeView pokedexTreeView { get; private set; }
 
         private readonly Entry rulesetNameEntry;
-        private readonly ComboBoxEntry gameNameComboBox;
+        private readonly ComboBoxText gameNameComboBox;
         private readonly Dictionary<string, CheckButton> languageButtons;
 
         private readonly Dictionary<string, TreeView> locationConditionsTreeViews;
@@ -182,9 +182,10 @@ namespace PokemonTrackerEditor.View.MainWindow {
             foreach (string game in MainProg.DefaultGames) {
                 gameModel.AppendValues(game);
             }
-            gameNameComboBox = ComboBoxEntry.NewText();
-            gameNameComboBox.Model = gameModel;
-            gameNameComboBox.Changed += (object sender, EventArgs args) => { Main.Rules.Game = ((ComboBoxEntry)sender).ActiveText; };
+            gameNameComboBox = new ComboBoxText {
+                Model = gameModel
+            };
+            gameNameComboBox.Changed += (object sender, EventArgs args) => { Main.Rules.Game = ((Entry)sender).Text; };
             gameFrame.Add(gameNameComboBox);
 
             generalBox.PackStart(gameFrame, false, false, 0);
