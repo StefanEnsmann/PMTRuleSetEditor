@@ -42,7 +42,7 @@
 <script lang="ts">
 import { h, ref, Component, defineComponent } from "vue"
 import { NIcon, NLayout, NMenu, NLayoutSider, NPageHeader, NGrid, NStatistic, NGi } from "naive-ui"
-import { RouterLink } from "vue-router"
+import { RouterLink, RouterView } from "vue-router"
 import {
   HomeRound,
   InfoRound,
@@ -142,7 +142,8 @@ export default defineComponent({
     NPageHeader,
     NGrid,
     NGi,
-    NStatistic
+    NStatistic,
+    RouterView
   },
   setup() {
     return {
