@@ -39,8 +39,8 @@
     </n-layout>
 </template>
 
-<script>
-import { h, ref } from "vue"
+<script lang="ts">
+import { h, ref, Component, defineComponent } from "vue"
 import { NIcon, NLayout, NMenu, NLayoutSider, NPageHeader, NGrid, NStatistic, NGi } from "naive-ui"
 import { RouterLink } from "vue-router"
 import {
@@ -53,7 +53,7 @@ import {
   HelpOutlineRound
 } from "@vicons/material"
 
-function renderIcon(icon) {
+function renderIcon(icon: Component) {
   return() => h(NIcon, null, { default: () => h(icon) })
 }
 
@@ -131,7 +131,7 @@ const menuOptions = [
   }
 ]
 
-export default {
+export default defineComponent({
   name: 'App',
   components: {
     PlaylistAddCheckRound,
@@ -151,7 +151,7 @@ export default {
       menuOptions
     }
   }
-}
+})
 </script>
 
 <style>

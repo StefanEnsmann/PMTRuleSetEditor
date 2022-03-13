@@ -1,16 +1,15 @@
 import { createApp } from 'vue'
 import App from './App.vue'
+
 import { createRouter, createWebHashHistory } from 'vue-router'
 
-import HomeView from './components/views/HomeView'
-import InformationView from './components/views/InformationView'
-import LocationsView from './components/views/LocationsView'
-import StoryItemsView from './components/views/StoryItemsView'
-import PokedexView from './components/views/PokedexView'
-import MapsView from './components/views/MapsView'
-import AboutView from './components/views/AboutView'
-
-import 'bootstrap/dist/css/bootstrap.min.css'
+import HomeView from './components/views/HomeView.vue'
+import InformationView from './components/views/InformationView.vue'
+import LocationsView from './components/views/LocationsView.vue'
+import StoryItemsView from './components/views/StoryItemsView.vue'
+import PokedexView from './components/views/PokedexView.vue'
+import MapsView from './components/views/MapsView.vue'
+import AboutView from './components/views/AboutView.vue'
 
 const routes = [
     { path: '/', component: HomeView },
