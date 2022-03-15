@@ -4,7 +4,7 @@
     <img :src="imgSrc" height="64" />
     <template #footer>
       <n-tag round :color="typeColor(typeA)">{{ typeA }}</n-tag>
-      <n-tag round :color="typeColor(typeB)">{{ typeB }}</n-tag>
+      <n-tag v-if="typeB !== undefined" round :color="typeColor(typeB)">{{ typeB }}</n-tag>
     </template>
   </n-card>
 </template>
@@ -23,10 +23,15 @@ export default defineComponent({
   props: {
     id: Number,
     name: String,
-    imgSrc: String,
     typeA: String,
     typeB: String,
     active: Boolean,
+  },
+  computed: {
+    imgSrc(): string {
+      return "https://pkmntracker.ensmann.de/img/pkmn/" + 
+        `${String(this.id).padStart(4, "0")}_${this.name?.toLowerCase()}.png`
+    }
   },
   methods: {
     typeColor(type: string | undefined): TagColor {

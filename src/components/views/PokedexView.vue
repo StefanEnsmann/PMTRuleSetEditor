@@ -1,32 +1,15 @@
 <template>
   <div class="pokedex-view">
     <n-grid cols="3 s:4 m:5 l:6 xl:7 2xl:8" responsive="screen">
-      <n-grid-item>
+      <n-grid-item v-for="pokemon in pokedex">
         <PokemonCard
-          id=001
-          name="Bulbasaur"
-          imgSrc="https://pkmntracker.ensmann.de/img/pkmn/0001_bulbasaur.png"
-          typeA="grass"
-          typeB="poison"
+          :id="pokemon.nr"
+          :name="pokemon.localization.en"
+          :typeA="pokemon.typeA"
+          :typeB="pokemon.typeB"
         />
       </n-grid-item>
       <n-grid-item>
-        <PokemonCard
-          id=002
-          name="Ivysaur"
-          imgSrc="https://pkmntracker.ensmann.de/img/pkmn/0002_ivysaur.png"
-          typeA="grass"
-          typeB="poison"
-        />
-      </n-grid-item>
-      <n-grid-item>
-        <PokemonCard
-          id=003
-          name="Venusaur"
-          imgSrc="https://pkmntracker.ensmann.de/img/pkmn/0003_venusaur.png"
-          typeA="grass"
-          typeB="poison"
-        />
       </n-grid-item>
     </n-grid>
   </div>
@@ -36,6 +19,8 @@
 import { defineComponent } from 'vue'
 import { NGrid, NGridItem } from 'naive-ui'
 import PokemonCard from '../pokedex/PokemonCard.vue'
+import { useStore } from "../../store"
+import { IPokemonData } from '../../models/pokedex'
 
 export default defineComponent({
   name: 'PokedexView',
@@ -46,6 +31,16 @@ export default defineComponent({
   },
   props: {
     msg: String
+  },
+  computed: {
+    pokedex(): IPokemonData[] {
+      let store = useStore()
+      if (store === undefined || store.state.externals.pokedexData === undefined) {
+        return [];
+      } else {
+        return store.state.externals.pokedexData.list
+      }
+    }
   }
 })
 </script>

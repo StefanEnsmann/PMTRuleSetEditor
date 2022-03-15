@@ -43,6 +43,7 @@
 import { h, ref, Component, defineComponent } from "vue"
 import { NIcon, NLayout, NMenu, NLayoutSider, NPageHeader, NGrid, NStatistic, NGi } from "naive-ui"
 import { RouterLink, RouterView } from "vue-router"
+import { useStore } from "./store"
 import {
   HomeRound,
   InfoRound,
@@ -146,11 +147,16 @@ export default defineComponent({
     RouterView
   },
   setup() {
+    const store = useStore()
+
     return {
       activeKey: ref("go-home"),
       collapsed: ref(true),
       menuOptions
     }
+  },
+  created() {
+    useStore().dispatch("externals/loadPokedexData")
   }
 })
 </script>
