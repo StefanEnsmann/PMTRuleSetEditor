@@ -1,24 +1,26 @@
 <template>
-  <n-card :title="name" :segmented="{ footer: 'soft' }">
-    <template #header-extra> #{{ id }} </template>
-    <img :src="imgSrc" height="64" />
-    <template #footer>
-      <n-tag round :color="typeColor(typeA)">{{ typeA }}</n-tag>
-      <n-tag v-if="typeB !== undefined" round :color="typeColor(typeB)">{{ typeB }}</n-tag>
-    </template>
-  </n-card>
+  <n-list-item>
+    <template #prefix>#{{ id }}</template>
+    <template #suffix><n-switch></n-switch></template>
+    <n-avatar bordered :src="imgSrc" :size=64 />
+    {{name}}
+    <n-tag round :color="typeColor(typeA)">{{ typeA }}</n-tag>
+    <n-tag v-if="typeB !== undefined" class="ml-1" round :color="typeColor(typeB)">{{ typeB }}</n-tag>
+  </n-list-item>
 </template>
 
 <script lang="ts">
 import { defineComponent } from "vue";
-import { NCard, NTag } from "naive-ui";
+import { NAvatar, NListItem, NTag, NSwitch } from "naive-ui";
 import { TagColor } from "naive-ui/lib/tag/src/common-props";
 
 export default defineComponent({
   name: "PokemonCard",
   components: {
-    NCard,
+    NAvatar,
+    NListItem,
     NTag,
+    NSwitch
   },
   props: {
     id: Number,

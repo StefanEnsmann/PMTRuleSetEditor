@@ -1,42 +1,27 @@
 <template>
-    <n-layout has-sider>
-      <n-layout-sider
-        bordered
-        collapse-mode="width"
-        :collapsed-width="64"
-        :width="240"
-        :collapsed="collapsed"
-        show-trigger
-        @collapse="collapsed = true"
-        @expand="collapsed = false"
-      >
-        <n-menu 
-          v-model:value="activeKey"
-          :collapsed="collapsed"
-          :collapsed-width="64"
-          :collapsed-icon-size="22"
-          :options="menuOptions" 
-        />
-      </n-layout-sider>
-      <n-layout>
-        <n-page-header>
-          <n-grid :cols="4">
-            <n-gi><n-statistic label="Checks" value="123">
-              <template #prefix>
-                <n-icon>
-                  <PlaylistAddCheckRound />
-                </n-icon>
-              </template>
-              </n-statistic>
-            </n-gi>
-            <n-gi><n-statistic label="Story Items" value="123" /></n-gi>
-            <n-gi><n-statistic label="Pokedex" value="123" /></n-gi>
-            <n-gi><n-statistic label="Maps" value="123" /></n-gi>
-          </n-grid>
-        </n-page-header>
-        <RouterView></RouterView>
-      </n-layout>
-    </n-layout>
+  <div class="flex-grow-0 p-2 bg-white">
+    <n-menu
+      v-model:value="activeKey"
+      mode="horizontal"
+      :options="menuOptions" 
+    />
+    <n-page-header>
+      <n-grid :cols="4">
+        <n-gi><n-statistic label="Checks" value="123">
+          <template #prefix>
+            <n-icon>
+              <PlaylistAddCheckRound />
+            </n-icon>
+          </template>
+          </n-statistic>
+        </n-gi>
+        <n-gi><n-statistic label="Story Items" value="123" /></n-gi>
+        <n-gi><n-statistic label="Pokedex" value="123" /></n-gi>
+        <n-gi><n-statistic label="Maps" value="123" /></n-gi>
+      </n-grid>
+    </n-page-header>
+  </div>
+  <RouterView class="flex-grow"></RouterView>
 </template>
 
 <script lang="ts">
@@ -160,15 +145,3 @@ export default defineComponent({
   }
 })
 </script>
-
-<style>
-html, body, #app {
-  width: 100%;
-  height: 100%;
-  margin: 0;
-}
-
-.n-layout {
-  height: 100%;
-}
-</style>
