@@ -6,21 +6,33 @@
           <q-avatar>
             <img src="https://cdn.quasar.dev/logo-v2/svg/logo-mono-white.svg" />
           </q-avatar>
-          Pokémon Ruleset Editor
+          {{ $t('title') }}
         </q-toolbar-title>
 
         <q-tabs inline-label>
-          <q-route-tab to="/home" icon="home" label="Home" />
-          <q-route-tab to="/checks" icon="check" label="Checks">
+          <q-route-tab to="/" icon="home" :label="$t('navigation.home')" />
+          <q-route-tab
+            to="/checks"
+            icon="check"
+            :label="$t('navigation.checks')"
+          >
             <q-badge color="grey" floating>0</q-badge>
           </q-route-tab>
-          <q-route-tab to="/items" icon="backpack" label="Items">
+          <q-route-tab
+            to="/items"
+            icon="backpack"
+            :label="$t('navigation.items')"
+          >
             <q-badge color="grey" floating>0</q-badge>
           </q-route-tab>
-          <q-route-tab to="/pokedex" icon="catching_pokemon" label="Pokédex">
+          <q-route-tab
+            to="/pokedex"
+            icon="catching_pokemon"
+            :label="$t('navigation.pokedex')"
+          >
             <q-badge color="grey" floating>0</q-badge>
           </q-route-tab>
-          <q-route-tab to="/maps" icon="map" label="Maps">
+          <q-route-tab to="/maps" icon="map" :label="$t('navigation.maps')">
             <q-badge color="grey" floating>0</q-badge>
           </q-route-tab>
         </q-tabs>
