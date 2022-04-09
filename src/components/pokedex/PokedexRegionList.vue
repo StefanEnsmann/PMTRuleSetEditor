@@ -14,18 +14,17 @@
         Test
       </q-item-section>
     </template>
-
-    <q-card>
-      <q-card-section> Test </q-card-section>
-    </q-card>
+    <pokedex-card-grid :region="region" />
   </q-expansion-item>
 </template>
 
 <script lang="ts">
 import { defineComponent } from 'vue';
+import PokedexCardGrid from './PokedexCardGrid.vue';
 
 export default defineComponent({
   name: 'PokedexRegionList',
+  components: { PokedexCardGrid },
   props: {
     region: String,
   },

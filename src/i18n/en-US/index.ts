@@ -9,5 +9,13 @@ export default {
   },
   regions: {
     kanto: 'Kanto',
+    johto: 'Johto',
+    hoenn: 'Hoenn',
+    sinnoh: 'Sinnoh',
+    unova: 'Unova',
+    kalos: 'Kalos',
+    alola: 'Alola',
+    galar: 'Galar',
+    hisui: 'Hisui',
   },
 };
