@@ -28,14 +28,19 @@ export default defineComponent({
     isActive() {
       return true;
     },
-    pokemonName() {
+    englishPokemonName() {
       return this.appStore.pokedexData.list[this.pokemonId - 1].localization.en;
+    },
+    pokemonName() {
+      return this.appStore.pokedexData.list[this.pokemonId - 1].localization[
+        this.$root.$i18n.locale
+      ];
     },
     imageURL() {
       let slug =
         String(this.pokemonId).padStart(4, '0') +
         '_' +
-        this.$pokemonNameEncoding(this.pokemonName);
+        this.$pokemonNameEncoding(this.englishPokemonName);
       return `https://pkmntracker.ensmann.de/img/pkmn/${slug}`;
     },
   },

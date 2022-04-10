@@ -1,7 +1,17 @@
-import enUS from './en-US';
-import deDE from './de-DE';
+import en from './en';
+import de from './de';
 
 export default {
-  'en-US': enUS,
-  'de-DE': deDE,
+  en: en,
+  de: de,
 };
+
+export const supportedLanguages = [
+  'en',
+  'de',
+  'ja',
+  'fr',
+  'ko',
+  'zh-TW',
+  'zh-CN',
+];

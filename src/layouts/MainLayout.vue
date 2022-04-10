@@ -36,6 +36,18 @@
             <q-badge color="grey" floating>0</q-badge>
           </q-route-tab>
         </q-tabs>
+
+        <q-select
+          v-model="$root.$i18n.locale"
+          :options="supportedLanguages"
+          label="Language"
+          dense
+          borderless
+          emit-value
+          map-options
+          options-dense
+          style="min-width: 150px"
+        />
       </q-toolbar>
     </q-header>
 
@@ -47,8 +59,18 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
+import { useQuasar } from 'quasar';
+import { supportedLanguages } from '../i18n';
 
 export default defineComponent({
   name: 'MainLayout',
+  setup() {
+    const $q = useQuasar();
+    console.log($q.lang.getLocale());
+
+    return {
+      supportedLanguages,
+    };
+  },
 });
 </script>
