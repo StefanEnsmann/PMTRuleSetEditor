@@ -1,12 +1,20 @@
-import { createApp } from 'vue'
-import { store, injectionKey } from './store'
-import router from './router'
+import { createApp } from "vue";
+import { createPinia } from "pinia";
+import axios from "axios";
+import VueAxios from "vue-axios";
 
-import App from './App.vue'
+import router from "./router";
+import "./index.css";
+import App from "./App.vue";
 
-import './index.css'
+const axiosInstance = axios.create({
+  baseURL: "https://pkmntracker.ensmann.de",
+});
 
-createApp(App)
-    .use(store, injectionKey)
-    .use(router)
-    .mount('#app')
+const app = createApp(App);
+app
+  .use(createPinia())
+  .use(VueAxios, axiosInstance)
+  .provide("axios", app.config.globalProperties.axiosInstance)
+  .use(router)
+  .mount("#app");
