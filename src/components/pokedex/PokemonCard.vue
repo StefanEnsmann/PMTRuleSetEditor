@@ -1,18 +1,25 @@
 <template>
   <n-list-item>
-    <template #prefix>#{{ id }}</template>
+    <template #prefix>#{{ pkmn.nr }}</template>
     <template #suffix><n-switch></n-switch></template>
-    <n-avatar bordered :src="imgSrc" :size=64 />
-    {{name}}
-    <n-tag round :color="typeColor(typeA)">{{ typeA }}</n-tag>
-    <n-tag v-if="typeB !== undefined" class="ml-1" round :color="typeColor(typeB)">{{ typeB }}</n-tag>
+    <n-avatar bordered :src="imgSrc" :size="64" />
+    {{ pkmn.localization.en }}
+    <n-tag round :color="typeColor(pkmn.typeA)">{{ pkmn.typeA }}</n-tag>
+    <n-tag
+      v-if="pkmn.typeB !== undefined"
+      class="ml-1"
+      round
+      :color="typeColor(pkmn.typeB)"
+      >{{ pkmn.typeB }}</n-tag
+    >
   </n-list-item>
 </template>
 
 <script lang="ts">
-import { defineComponent } from "vue";
+import { defineComponent, PropType } from "vue";
 import { NAvatar, NListItem, NTag, NSwitch } from "naive-ui";
 import { TagColor } from "naive-ui/lib/tag/src/common-props";
+import { PokemonData } from "../../models/pokedex";
 
 export default defineComponent({
   name: "PokemonCard",
@@ -20,20 +27,23 @@ export default defineComponent({
     NAvatar,
     NListItem,
     NTag,
-    NSwitch
+    NSwitch,
   },
   props: {
-    id: Number,
-    name: String,
-    typeA: String,
-    typeB: String,
-    active: Boolean,
+    pkmn: {
+      type: Object as PropType<PokemonData>,
+      default: {},
+    },
   },
   computed: {
     imgSrc(): string {
-      return "https://pkmntracker.ensmann.de/img/pkmn/" + 
-        `${String(this.id).padStart(4, "0")}_${this.name?.toLowerCase()}.png`
-    }
+      return (
+        "https://pkmntracker.ensmann.de/img/pkmn/" +
+        `${String(this.pkmn.nr).padStart(4, "0")}_${this.pokemonSlug(
+          this.pkmn.localization.en
+        )}.png`
+      );
+    },
   },
   methods: {
     typeColor(type: string | undefined): TagColor {

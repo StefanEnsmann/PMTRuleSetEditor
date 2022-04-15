@@ -1,22 +1,51 @@
-export interface ILocalizationData {
-    "de": string,
-    "en": string,
-    "fr": string,
-    "jp": string,
-    "ko": string,
-    "zh-Hans": string,
-    "zh-Hant": string
+export interface PokedexOverrideData {
+  typeA: string | null;
+  typeB?: string;
 }
 
-export interface IPokemonData {
-    localization: ILocalizationData,
-    nr: number,
-    typeA: string,
-    typeB: string
+export interface PokedexGenerationOverrides {
+  [index: string]: PokedexOverrideData;
 }
 
-export interface IPokedexData {
-    overrides: Object,
-    templates: Object,
-    list: Array<IPokemonData>
+export interface PokedexOverrides {
+  [index: string]: PokedexGenerationOverrides;
+}
+
+export interface PokedexRegion {
+  0: number;
+  1: number;
+}
+
+export interface PokedexRegions {
+  [index: string]: PokedexRegion;
+}
+
+export interface PokedexTemplates {
+  [index: string]: Array<number>;
+}
+
+export interface LocalizationData {
+  de: string;
+  en: string;
+  fr: string;
+  ja: string;
+  ko: string;
+  "zh-CN": string;
+  "zh-TW": string;
+}
+
+export interface PokemonData {
+  localization: LocalizationData;
+  nr: number;
+  typeA: string;
+  typeB: string;
+}
+
+export type PokedexList = Array<PokemonData>;
+
+export interface PokedexData {
+  overrides: PokedexOverrides;
+  regions: PokedexRegions;
+  templates: PokedexTemplates;
+  list: PokedexList;
 }

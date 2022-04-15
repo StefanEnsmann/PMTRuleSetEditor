@@ -1,29 +1,30 @@
 <template>
   <n-list class="p-1 overflow-y-scroll">
-    <PokemonCard
-      v-for="pokemon in pokedex"
-      :id="pokemon.nr"
-      :name="pokemon.localization.en"
-      :typeA="pokemon.typeA"
-      :typeB="pokemon.typeB"
-    />
+    <PokedexRegionListVue v-for="region in regions" :region="region" />
   </n-list>
 </template>
 
 <script lang="ts">
 import { defineComponent } from "vue";
 import { NList } from "naive-ui";
-import PokemonCard from "../pokedex/PokemonCard.vue";
-import { IPokemonData } from "../../models/pokedex";
+import { usePokedexStore } from "../../store/pokedexStore";
+import PokedexRegionListVue from "../pokedex/PokedexRegionList.vue";
 
 export default defineComponent({
   name: "PokedexView",
   components: {
-    PokemonCard,
+    PokedexRegionListVue,
     NList,
   },
-  props: {
-    msg: String,
+  setup() {
+    const pokedexStore = usePokedexStore();
+
+    return { pokedexStore };
+  },
+  computed: {
+    regions(): Array<string> {
+      return Object.keys(this.pokedexStore.regions);
+    },
   },
 });
 </script>

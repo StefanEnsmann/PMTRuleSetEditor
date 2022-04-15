@@ -5,7 +5,7 @@
 <script lang="ts">
 import { defineComponent } from "vue";
 import MainLayout from "./components/layouts/MainLayout.vue";
-import { useApplicationStore } from "./store/applicationStore";
+import { usePokedexStore } from "./store/pokedexStore";
 
 export default defineComponent({
   name: "App",
@@ -13,16 +13,19 @@ export default defineComponent({
     MainLayout,
   },
   setup() {
-    const applicationStore = useApplicationStore();
+    const pokedexStore = usePokedexStore();
 
     return {
-      applicationStore,
+      pokedexStore,
     };
   },
   created() {
-    this.axios
-      .get("/pkmn_data/pokedex.json")
-      .then(({ data }) => (this.applicationStore.pokedexData = data));
+    this.axios.get("/pkmn_data/pokedex.json").then(({ data }) => {
+      this.pokedexStore.overrides = data.overrides;
+      this.pokedexStore.regions = data.regions;
+      this.pokedexStore.templates = data.templates;
+      this.pokedexStore.list = data.list;
+    });
   },
 });
 </script>
