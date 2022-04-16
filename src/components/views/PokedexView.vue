@@ -1,12 +1,14 @@
 <template>
-  <n-list class="p-1 overflow-y-scroll">
-    <PokedexRegionListVue v-for="region in regions" :region="region" />
-  </n-list>
+  <n-collapse>
+    <n-collapse-item v-for="region in regions" :title="region">
+      <PokedexRegionListVue :region="region" />
+    </n-collapse-item>
+  </n-collapse>
 </template>
 
 <script lang="ts">
 import { defineComponent } from "vue";
-import { NList } from "naive-ui";
+import { NCollapse, NCollapseItem } from "naive-ui";
 import { usePokedexStore } from "../../store/pokedexStore";
 import PokedexRegionListVue from "../pokedex/PokedexRegionList.vue";
 
@@ -14,7 +16,8 @@ export default defineComponent({
   name: "PokedexView",
   components: {
     PokedexRegionListVue,
-    NList,
+    NCollapse,
+    NCollapseItem,
   },
   setup() {
     const pokedexStore = usePokedexStore();

@@ -1,23 +1,35 @@
 <template>
-  <n-list-item>
-    <template #prefix>#{{ pkmn.nr }}</template>
-    <template #suffix><n-switch></n-switch></template>
-    <n-avatar bordered :src="imgSrc" :size="64" />
-    {{ pkmn.localization.en }}
-    <n-tag round :color="typeColor(pkmn.typeA)">{{ pkmn.typeA }}</n-tag>
-    <n-tag
-      v-if="pkmn.typeB !== undefined"
-      class="ml-1"
-      round
-      :color="typeColor(pkmn.typeB)"
-      >{{ pkmn.typeB }}</n-tag
-    >
-  </n-list-item>
+  <n-card
+    :title="pkmn.localization.en"
+    hoverable
+    class="select-none w-52"
+    :class="{ 'bg-green-100': active }"
+    @click="toggleActive"
+  >
+    <template #cover>
+      <n-space justify="space-between" align="baseline" class="pt-1 px-3">
+        <img :src="imgSrc" class="h-14 w-14 inline" />
+        <n-space :size="[4, 0]">
+          <n-tag size="small" :color="typeColor(pkmn.typeA)">
+            {{ pkmn.typeA }}
+          </n-tag>
+          <n-tag
+            v-if="pkmn.typeB !== undefined"
+            size="small"
+            :color="typeColor(pkmn.typeB)"
+          >
+            {{ pkmn.typeB }}
+          </n-tag>
+        </n-space>
+      </n-space>
+    </template>
+    <template #header-extra> #{{ pkmn.nr }} </template>
+  </n-card>
 </template>
 
 <script lang="ts">
 import { defineComponent, PropType } from "vue";
-import { NAvatar, NListItem, NTag, NSwitch } from "naive-ui";
+import { NAvatar, NCard, NTag, NSwitch, NSpace } from "naive-ui";
 import { TagColor } from "naive-ui/lib/tag/src/common-props";
 import { PokemonData } from "../../models/pokedex";
 
@@ -25,15 +37,21 @@ export default defineComponent({
   name: "PokemonCard",
   components: {
     NAvatar,
-    NListItem,
+    NCard,
     NTag,
     NSwitch,
+    NSpace,
   },
   props: {
     pkmn: {
       type: Object as PropType<PokemonData>,
       default: {},
     },
+  },
+  data() {
+    return {
+      active: false,
+    };
   },
   computed: {
     imgSrc(): string {
@@ -46,6 +64,10 @@ export default defineComponent({
     },
   },
   methods: {
+    toggleActive(): void {
+      this.active = !this.active;
+      console.log(`Toggle ${this.pkmn.localization.en}: ${this.active}`);
+    },
     typeColor(type: string | undefined): TagColor {
       switch (type) {
         case "normal":
@@ -105,7 +127,7 @@ export default defineComponent({
         case "fire":
           return {
             color: "#FF9C54",
-            textColor: "#FFF",
+            textColor: "#000",
             borderColor: "#6D6D4E",
           };
         case "water":
@@ -123,13 +145,13 @@ export default defineComponent({
         case "electric":
           return {
             color: "#F3D23B",
-            textColor: "#FFF",
+            textColor: "#000",
             borderColor: "#6D6D4E",
           };
         case "psychic":
           return {
             color: "#F97176",
-            textColor: "#FFF",
+            textColor: "#000",
             borderColor: "#6D6D4E",
           };
         case "ice":
@@ -153,7 +175,7 @@ export default defineComponent({
         case "fairy":
           return {
             color: "#EC8FE6",
-            textColor: "#FFF",
+            textColor: "#000",
             borderColor: "#6D6D4E",
           };
         default:

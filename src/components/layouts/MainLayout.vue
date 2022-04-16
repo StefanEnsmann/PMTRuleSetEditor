@@ -10,34 +10,21 @@
     </n-space>
     <n-divider class="flex-grow-0 my-2" />
     <n-space>
-      <n-badge :value="20"
-        ><a href="#/pokedex">Pokedex</a><PlaylistAddCheckRound
-      /></n-badge>
+      <n-badge :value="20"><a href="#/pokedex">Pokedex</a></n-badge>
     </n-space>
     <n-divider class="my-2" />
   </div>
-  <RouterView class="flex-grow"></RouterView>
+  <RouterView class="flex-grow px-2"></RouterView>
 </template>
 
 <script lang="ts">
-import { h, ref, Component, defineComponent } from "vue";
-import { NIcon, NStatistic, NSpace, NDivider, NBadge } from "naive-ui";
-import { RouterLink, RouterView } from "vue-router";
-import {
-  HomeRound,
-  InfoRound,
-  PlaylistAddCheckRound,
-  BackpackRound,
-  CatchingPokemonRound,
-  MapRound,
-  HelpOutlineRound,
-} from "@vicons/material";
+import { h, defineComponent } from "vue";
+import { NStatistic, NSpace, NDivider, NBadge } from "naive-ui";
+import { RouterView } from "vue-router";
 
 export default defineComponent({
   name: "MainLayout",
   components: {
-    PlaylistAddCheckRound,
-    NIcon,
     NStatistic,
     RouterView,
     NSpace,

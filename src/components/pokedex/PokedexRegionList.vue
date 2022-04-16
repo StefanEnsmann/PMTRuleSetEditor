@@ -1,17 +1,21 @@
 <template>
-  <PokemonCardVue v-for="pkmn in pokemonForRegion" :pkmn="pkmn" />
+  <n-space justify="center">
+    <PokemonCardVue v-for="pkmn in pokemonForRegion" :pkmn="pkmn" />
+  </n-space>
 </template>
 
 <script lang="ts">
 import { defineComponent } from "vue";
 import { PokedexList } from "../../models/pokedex";
 import { usePokedexStore } from "../../store/pokedexStore";
+import { NSpace } from "naive-ui";
 import PokemonCardVue from "./PokemonCard.vue";
 
 export default defineComponent({
   name: "PokedexRegionList",
   components: {
     PokemonCardVue,
+    NSpace,
   },
   props: {
     region: String,
