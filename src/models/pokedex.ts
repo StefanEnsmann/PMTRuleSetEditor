@@ -1,3 +1,5 @@
+import { LocalizationData } from "./application";
+
 export interface PokedexOverrideData {
   typeA: string | null;
   typeB?: string;
@@ -22,16 +24,6 @@ export interface PokedexRegions {
 
 export interface PokedexTemplates {
   [index: string]: Array<number>;
-}
-
-export interface LocalizationData {
-  de: string;
-  en: string;
-  fr: string;
-  ja: string;
-  ko: string;
-  "zh-CN": string;
-  "zh-TW": string;
 }
 
 export interface PokemonData {

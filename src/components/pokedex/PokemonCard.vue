@@ -66,7 +66,6 @@ export default defineComponent({
   methods: {
     toggleActive(): void {
       this.active = !this.active;
-      console.log(`Toggle ${this.pkmn.localization.en}: ${this.active}`);
     },
     typeColor(type: string | undefined): TagColor {
       switch (type) {
